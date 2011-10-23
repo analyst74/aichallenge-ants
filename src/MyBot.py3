@@ -2,8 +2,6 @@
 from ants import *
 from random import choice
 
-EXPLORE_RADIUS = 5
-
 # define a class with a do_turn method
 # the Ants.run method will parse and update bot input
 # it will also run the do_turn method for us
@@ -32,7 +30,6 @@ class MyBot:
         'gather food'
         for food_loc in ants.food_list:
             closest_ant = ants.find_closest_ant(food_loc)
-            logging.debug('closest_ant is ' + str(closest_ant))
             if closest_ant is not None:
                 ants.issue_order(closest_ant)
     
@@ -55,22 +52,20 @@ class MyBot:
         # loop through all my un-moved ants and set them to explore
         # the ant_loc is an ant location tuple in (row, col) form
         for ant_loc in ants.my_unmoved_ants():
-            #pdb.set_trace()
-            # try to move away from empire_center
-            logging.debug('ant_loc ' + str(ant_loc))
             directions = ants.passable_directions(ant_loc)
-            logging.debug('directions ' + str(directions))
             new_locs = [ants.destination(ant_loc, d) for d in directions]
             logging.debug('new_locs ' + str(new_locs))
             min_val = sys.maxsize
-            best_direction = []
+            best_directions = []
             for (row, col) in new_locs:
+                logging.debug('beaten_path[' + str((row,col)) + '] = ' + str(ants.beaten_path[row][col]))
                 if min_val > ants.beaten_path[row][col]:
                     min_val = ants.beaten_path[row][col]
                     best_new_loc = (row, col)
-                    best_direction = ants.direction(ant_loc, best_new_loc)
-            if len(best_direction) > 0:
-                ants.issue_order((ant_loc, choice(best_direction)))
+                    best_directions = ants.direction(ant_loc, best_new_loc)
+            if len(best_directions) > 0:
+                logging.debug('best_direction = ' + str(best_directions))
+                ants.issue_order((ant_loc, choice(best_directions)))
             
             # check if we still have time left to calculate more orders
             if ants.time_remaining() < 10:

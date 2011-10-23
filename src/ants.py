@@ -101,7 +101,7 @@ class Ants():
         self.vision = None
         
         # reduce beaten path
-        self.beaten_path = [[int(x/2) for x in y] for y in self.beaten_path]
+        self.beaten_path = [[int(x-max(x/10,1)) for x in y] for y in self.beaten_path]
         
         # hill is slightly different, we do want to remember 
         # where hills are, so we know where to attack
@@ -213,8 +213,6 @@ class Ants():
     def passable(self, loc):
         'true if not water or ant'
         row, col = loc
-        logging.debug('passable.loc = ' + str(loc))
-        logging.debug('self.map[row][col] ' + str(self.map[row][col]))
         return self.map[row][col] > WATER and self.map[row][col] != 0
         
     def passable_directions(self, loc):

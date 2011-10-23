@@ -7,14 +7,21 @@ Tasks
 - protect home
 - gather food
     keep track of known food, loop through all of them and find nearest ant (ignore enemy ant for now), stopping at a max radius (i.e. 5)
-- raze (combat-aware)
-- explore (combat-aware)
-    establish a center of empire (based on ant locations), and move away from it
+- combat
+    active on all ants who have enemy in range x (heuristic, can start with attack radius + 2)
+    calculate current threat state, by calculating enemy ants / friendly ants within range x
+    if outnumbered (threat level > 1), run toward friendly, by calculating threat state of each valid direction (lowest)
+        potential improvement, instead of check next step, check n steps (heuristic)
+    if outnumber enemy (threat level < 1), run toward enemy, by threat state of each valid direction (highest)
+- raze
+    similar logic as gather food, except enemy hill location is remembered until razed, and a greater number of ants will be called for
+- explore
+    establish beaten path value, every time a block is being stepped on, its beaten path value increases by x (heuristic)
+    ant in explore mode will choose path with smallest x, aka least traveled route
+    beaten path value is reduced 
     
 Combat:
 combat logic is only applied to tasks noted with (combat-aware), in those situations, individual ants will assess strength ratio, if it is out numbered, it will retreat to opposite direction
     
 Fail-safe check:
-- make sure ants do not go into the same spot, killing each other
-    1, update ant position as soon one ant makes a move
-    2, keep a list of previous move target positions, and do not move into those
+- make sure ants do not go into the same spot, killing each other by updating map info as soon one ant makes a move (in issue_order function)

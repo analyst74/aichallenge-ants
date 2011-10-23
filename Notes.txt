@@ -9,11 +9,8 @@ Tasks
     keep track of known food, loop through all of them and find nearest ant (ignore enemy ant for now), stopping at a max radius (i.e. 5)
 - raze (combat-aware)
 - explore (combat-aware)
-    within 5 steps radius, find the direction with least friendlies
-    \  /
-     \/
-     /\
-    /  \
+    establish a center of empire (based on ant locations), and move away from it
+    
 Combat:
 combat logic is only applied to tasks noted with (combat-aware), in those situations, individual ants will assess strength ratio, if it is out numbered, it will retreat to opposite direction
     

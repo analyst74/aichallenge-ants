@@ -11,6 +11,7 @@ import logging
 DEBUG_LOG_NAME = 'debug.log'
 logging.basicConfig(filename=DEBUG_LOG_NAME,level=logging.DEBUG,filemode='w')
 
+HILL = 1
 MY_ANT = 0
 ANTS = 0
 DEAD = -1
@@ -46,6 +47,7 @@ class Ants():
         self.cols = None
         self.rows = None
         self.map = None
+        self.beaten_path = None
         self.hill_list = {}
         self.ant_list = {}
         self.dead_list = defaultdict(list)
@@ -59,7 +61,6 @@ class Ants():
         self.spawnradius2 = 0
         self.turns = 0
         self.current_turn = 0
-        self.empire_center = ()
 
     def setup(self, data):
         'parse initial input and setup starting game state'
@@ -88,6 +89,8 @@ class Ants():
                     self.turns = int(tokens[1])
         self.map = [[LAND for col in range(self.cols)]
                     for row in range(self.rows)]
+        self.beaten_path = [[0 for col in range(self.cols)]
+                            for row in range(self.rows)]
 
     def update(self, data):
         'parse engine input and update the game state'
@@ -97,16 +100,29 @@ class Ants():
         # reset vision
         self.vision = None
         
-        # clear hill, ant and food data
-        self.hill_list = {}
+        # reduce beaten path
+        self.beaten_path = [[int(x/2) for x in y] for y in self.beaten_path]
+        
+        # hill is slightly different, we do want to remember 
+        # where hills are, so we know where to attack
+        hills_to_remove = []
+        for row, col in self.hill_list.keys():
+            if self.map[row][col] != HILL:
+                hills_to_remove.append((row,col))
+        for loc in hills_to_remove:
+            del self.hill_list[loc]
+
+        # clear ant and food data
         for row, col in self.ant_list.keys():
             self.map[row][col] = LAND
         self.ant_list = {}
+        
         for row, col in self.dead_list.keys():
-            self.map[row][col] = LAND
+            self.map[row][col] = LAND            
         self.dead_list = defaultdict(list)
+        
         for row, col in self.food_list:
-            self.map[row][col] = LAND
+            self.map[row][col] = LAND            
         self.food_list = []
         
         # update map and create new ant and food lists
@@ -139,30 +155,27 @@ class Ants():
                             self.dead_list[(row, col)].append(owner)
                         elif tokens[0] == 'h':
                             owner = int(tokens[3])
+                            self.map[row][col] = HILL
                             self.hill_list[(row, col)] = owner
-        
-        # calculate empire center
-        total_row = total_col = ant_count = 0
-        for row, col in self.ant_list.keys():
-            total_row += row
-            total_col += col
-        self.empire_center = (total_row/len(self.ant_list), total_col/len(self.ant_list))
-        
+
     def time_remaining(self):
         return self.turntime - int(1000 * (time.clock() - self.turn_start_time))
     
     def issue_order(self, order):
-        'issue an order by writing the proper ant location and direction'
+        'issue an order by writing the proper ant location and direction'        
         (row, col), direction = order
         (newrow, newcol) = self.destination((row, col), direction)
-        sys.stdout.write('o %s %s %s\n' % (row, col, direction))
-        sys.stdout.flush()
-        # update ant moved flag
-        (owner, moved) = self.ant_list[(row,col)]
-        self.ant_list[(row,col)] = (owner, True)
-        # update map info (to avoid to ants moving into the same spot)
-        self.map[newrow][newcol] = MY_ANT
-        self.map[row][col] = LAND
+        if self.passable((newrow, newcol)):
+            sys.stdout.write('o %s %s %s\n' % (row, col, direction))
+            sys.stdout.flush()
+            # update ant moved flag
+            (owner, moved) = self.ant_list[(row,col)]
+            self.ant_list[(row,col)] = (owner, True)
+            # update map info (to avoid to ants moving into the same spot)
+            self.map[newrow][newcol] = MY_ANT
+            self.map[row][col] = LAND
+            # set level of beaten path
+            self.beaten_path[row][col] += 10
     
     def finish_turn(self):
         'finish the turn by writing the go line'
@@ -200,10 +213,8 @@ class Ants():
     def passable(self, loc):
         'true if not water or ant'
         row, col = loc
-        logging.debug('row,loc = ' + str(loc))
-        logging.debug('map[loc] = ' + str(self.map[row][col]))
-        if self.map[row][col] == 0:
-            logging.debug('current ant list: ' + '|'.join(str(self.ant_list.keys())))
+        logging.debug('passable.loc = ' + str(loc))
+        logging.debug('self.map[row][col] ' + str(self.map[row][col]))
         return self.map[row][col] > WATER and self.map[row][col] != 0
         
     def passable_directions(self, loc):
@@ -265,7 +276,7 @@ class Ants():
                 d.append('w')
         return d
 
-    def find_closest_ant(self, loc):
+    def find_closest_ant(self, loc, max_search = 100):
         'find closet ant that belongs to self to a particular location'
         # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
         # create a queue Q
@@ -278,7 +289,7 @@ class Ants():
         while_count = 0
         while len(list_q) > 0:
             # limit max search depth (in case all ants close by are occupied)
-            if while_count > 100:
+            if while_count > max_search:
                 break
             while_count += 1
             # dequeue an item from Q into v
@@ -286,7 +297,7 @@ class Ants():
             # for each edge e incident on v in Graph:
             for e in ['n', 'e', 's', 'w']:
                 # let w be the other end of e
-                w = self.destination(loc, e)                
+                w = self.destination(loc, e)
                 # w must not be water
                 (w_row, w_col) = w
                 if self.map[w_row][w_col] != WATER:                
@@ -300,14 +311,14 @@ class Ants():
                                 return (w, BEHIND[e])
                             # otherwise, forget about it 
                             # (the ant will collect the food later)
-                            else:
-                                return None                    
+                            #else:
+                                #return None                    
                     # if w is not marked
                     if not w in marked_dict:
                         # mark w
                         marked_dict[w] = True
                         # enqueue w onto Q
-                        list_q.append(w)        
+                        list_q.append(w)
         
     def visible(self, loc):
         ' determine which squares are visible to the given player '

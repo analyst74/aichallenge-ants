@@ -1,0 +1,23 @@
+Architecture:
+- each ant has a flag marking it as free/moved
+- main game loop start with various tasks, ordered by precedence, and move appropriate ant to achieve those objectives. this process repeats until all tasks are completed
+    - order of importance: protect home, gather, raze, combat, explore
+
+Tasks
+- protect home
+- gather food
+    keep track of known food, loop through all of them and find nearest ant (ignore enemy ant for now), stopping at a max radius (i.e. 5)
+- raze (combat-aware)
+- explore (combat-aware)
+    within 5 steps radius, find the direction with least friendlies
+    \  /
+     \/
+     /\
+    /  \
+Combat:
+combat logic is only applied to tasks noted with (combat-aware), in those situations, individual ants will assess strength ratio, if it is out numbered, it will retreat to opposite direction
+    
+Fail-safe check:
+- make sure ants do not go into the same spot, killing each other
+    1, update ant position as soon one ant makes a move
+    2, keep a list of previous move target positions, and do not move into those

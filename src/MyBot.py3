@@ -90,20 +90,25 @@ class MyBot:
         # loop through all my un-moved ants and set them to explore
         # the ant_loc is an ant location tuple in (row, col) form
         for ant_loc in ants.my_unmoved_ants():
-            directions = ants.passable_directions(ant_loc)
-            new_locs = [ants.destination(ant_loc, d) for d in directions]
-            logging.debug('ant_loc = ' + str(ant_loc))
-            logging.debug('new_locs = ' + str(new_locs))
             min_val = sys.maxsize
             best_directions = []
-            for (row, col) in new_locs:
-                logging.debug('beaten_path[' + str((row,col)) + '] = ' + str(ants.beaten_path[row][col]))
-                if min_val > ants.beaten_path[row][col]:
-                    min_val = ants.beaten_path[row][col]
+            for cur_direction in ants.passable_directions(ant_loc):
+                # 2 levels, so the ant can "see" further
+                (row,col) = ants.destination(ants.destination(ant_loc, cur_direction), cur_direction)
+                # calculate new_locs plus its surrounding location score
+                cur_val = ants.beaten_path[row][col]
+                new_directions = ants.passable_directions((row,col))
+                for (adj_row, adj_col) in [ants.destination((row,col), d) for d in new_directions]:
+                    cur_val += ants.beaten_path[adj_row][adj_col]
+                # then normalize it
+                cur_val = cur_val / (len(new_directions) + 1)
+                
+                if min_val > cur_val:
+                    min_val = cur_val
                     best_new_loc = (row, col)
-                    best_directions = ants.direction(ant_loc, best_new_loc)
-                elif min_val == ants.beaten_path[row][col]:
-                    best_directions += ants.direction(ant_loc, (row, col))
+                    best_directions = [cur_direction]
+                elif min_val == cur_val:
+                    best_directions.append(cur_direction)
             if len(best_directions) > 0:
                 logging.debug('best_direction = ' + str(best_directions))
                 ants.issue_order((ant_loc, choice(best_directions)))

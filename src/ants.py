@@ -178,6 +178,10 @@ class Ants():
             self.map[row][col] = LAND
             # set level of beaten path
             self.beaten_path[row][col] += 10
+            # increase adjacent ones too
+            for d in self.passable_directions((row, col)):
+                (adj_row, adj_col) = self.destination((row, col), d)
+                self.beaten_path[adj_row][adj_col] += 5
     
     def finish_turn(self):
         'finish the turn by writing the go line'

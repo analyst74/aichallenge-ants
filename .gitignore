@@ -2,3 +2,4 @@
 *.pyc
 game_logs
 debug.log
+src/temp*

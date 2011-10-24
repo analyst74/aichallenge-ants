@@ -164,15 +164,20 @@ class Ants():
         return self.turntime - int(1000 * (time.clock() - self.turn_start_time))
     
     def issue_order(self, order):
-        'issue an order by writing the proper ant location and direction'        
+        'issue an order by writing the proper ant location and direction'
         (row, col), direction = order
+        #early exit
+        if direction is None:
+            self.ant_list[(row,col)] = (MY_ANT, True)
+            return
+        
         (newrow, newcol) = self.destination((row, col), direction)
         if self.passable((newrow, newcol)):
             sys.stdout.write('o %s %s %s\n' % (row, col, direction))
             sys.stdout.flush()
             # update ant moved flag
-            (owner, moved) = self.ant_list[(row,col)]
-            self.ant_list[(row,col)] = (owner, True)
+            del self.ant_list[(row,col)]
+            self.ant_list[(newrow, newcol)] = (MY_ANT, True)
             # update map info (to avoid to ants moving into the same spot)
             self.map[newrow][newcol] = MY_ANT
             self.map[row][col] = LAND
@@ -278,11 +283,10 @@ class Ants():
                 d.append('e')
             if col1 - col2 <= width2:
                 d.append('w')
-        logging.debug('loc1 = ' + str(loc1) + ', loc2 = ' + str(loc2) + ', d = ' + str(d))
         return d
 
     def find_closest_ant_order(self, loc, max_search = 100):
-        'find closet ant that belongs to self to a particular location'
+        'find closet ant that belongs to self to a particular location'        
         # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
         # create a queue Q
         list_q = deque()
@@ -307,17 +311,14 @@ class Ants():
                 (w_row, w_col) = w
                 if self.map[w_row][w_col] != WATER:                
                     # break out if we find our own ant
-                    if w in self.ant_list:
+                    if w in self.my_ants():
                         (owner, moved) = self.ant_list[w]
-                        # this ant must be ours
-                        if owner == MY_ANT:
-                            # if ant has not moved yet, use it
-                            if not moved:
-                                return (w, BEHIND[e])
-                            # otherwise, forget about it 
-                            # (the ant will collect the food later)
-                            #else:
-                                #return None                    
+                        # if ant has not moved yet, use it
+                        if not moved:
+                            if self.distance(loc, w) == 1:
+                                return (w, None)
+                            else:
+                                return (w, BEHIND[e])     
                     # if w is not marked
                     if not w in marked_dict:
                         # mark w
@@ -380,7 +381,6 @@ class Ants():
                     # check if we find friendly or enemy ant
                     if w in self.ant_list:
                         (owner, moved) = self.ant_list[w]
-                        logging.debug('found ant ' + str(w) + str(owner))
                         # for own ant, need to be close by
                         if owner == MY_ANT:
                             if distance < 2:
@@ -394,7 +394,6 @@ class Ants():
                         marked_dict[w] = True
                         # enqueue w onto Q
                         list_q.append(w)
-        logging.debug('enemy_count ' + str(enemy_count) + ' friendly_count' + str(friendly_count))
         return enemy_count / friendly_count if friendly_count > 0 else enemy_count
     
     def render_text_map(self):

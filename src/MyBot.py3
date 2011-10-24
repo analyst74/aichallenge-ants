@@ -30,15 +30,28 @@ class MyBot:
     def issue_gather_task(self, ants):
         'gather food'
         for food_loc in ants.food_list:
-            ant_order = ants.find_closest_ant_order(food_loc)
+            ant_order = ants.find_closest_ant_order(food_loc, 20)
+            logging.debug('issue_gather_task for food %s, time_remaining %s ' % (str(food_loc), str(ants.time_remaining())))
             if ant_order is not None:
                 ants.issue_order(ant_order)
     
     def issue_combat_task(self, ants):
         'combat logic'
+        logging.debug('ants.time_remaining().start = ' + str(ants.time_remaining())) 
         for ant_loc in ants.my_unmoved_ants():
+            # some of the previously unmoved ants might have been moved            
+            if ant_loc not in ants.ant_list:
+                continue
+            owner, moved = ants.ant_list[ant_loc]
+            if moved:
+                continue
+                
             threat_level = ants.calc_threat_level(ant_loc)
-            logging.debug('threat_level = ' + str(threat_level))
+            if threat_level > 0:
+                logging.debug('combat_task for %s' % str(ant_loc))
+                logging.debug('threat_level = ' + str(threat_level))
+                logging.debug('ants.time_remaining().stage 2 = ' + str(ants.time_remaining())) 
+                
             # 0 means no enemy nearby
             if threat_level >= 1:
                 retreat_directions = []
@@ -53,6 +66,7 @@ class MyBot:
                         retreat_directions.append(d)
                 if len(retreat_directions) > 0:
                     ants.issue_order((ant_loc, choice(retreat_directions)))
+                
             elif threat_level > 0 and threat_level < 1:
                 attack_directions = []
                 highest_level = 0
@@ -66,25 +80,48 @@ class MyBot:
                         attack_directions.append(d)
                 if len(attack_directions) > 0:
                     ants.issue_order((ant_loc, choice(attack_directions)))
-    
+
+            # common combat logic
+            if threat_level > 0:
+                logging.debug('ants.time_remaining().stage 3 = ' + str(ants.time_remaining()))                
+                # set ant to moved state, prevent being picked up by explorer
+                ants.ant_list[ant_loc] = (MY_ANT, True)
+                # call for help, gang bang time!
+                for i in range(5): # right now it only looks for 5 max helpers
+                    ant_order = ants.find_closest_ant_order(ant_loc, 100)
+                    if ant_order is not None:
+                        ants.issue_order(ant_order)
+                        logging.debug('calling help from %s, to %s ' % (str(ant_order), str(ant_loc)))
+                    else:
+                        break
+                logging.debug('ants.time_remaining().stage 4 = ' + str(ants.time_remaining()))    
+                
     def issue_raze_task(self, ants):
         'raze enemy hill'
         # send 20% of total ants to attack
         attack_amount = int(len(ants.ant_list) / 5)
         for hill_loc, owner in ants.enemy_hills():
-            for i in range(attack_amount):
-                ant_order = ants.find_closest_ant_order(hill_loc, 500)
-                if ant_order is not None:
-                    ants.issue_order(ant_order)
-                else:
-                    # if no ants are nearby, move onto next hill
-                    break 
+            leader_order = ants.find_closest_ant_order(hill_loc, 300)
+            logging.debug('issue_raze_task for %s' % str(hill_loc))
+            logging.debug('leader_order = %s' % str(leader_order))
+            logging.debug('ants.time_remaining() = ' + str(ants.time_remaining()))    
+            if leader_order is not None:
+                ants.issue_order(leader_order)                # call nearby ants to follow
+                leader_loc, leader_direction = leader_order
+                for i in range(attack_amount):
+                    militia_order = ants.find_closest_ant_order(leader_loc, 100)
+                    if militia_order is not None:
+                        ants.issue_order(militia_order)
+                    else:
+                        # if no ants are nearby, move onto next hill
+                        break 
         
     def issue_explore_task(self, ants):
         'explore map'
         # loop through all my un-moved ants and set them to explore
         # the ant_loc is an ant location tuple in (row, col) form
         for ant_loc in ants.my_unmoved_ants():
+            logging.debug('issue_explore_task for %s' % str(ant_loc))
             min_val = sys.maxsize
             best_directions = []
             for cur_direction in ants.passable_directions(ant_loc):
@@ -105,10 +142,10 @@ class MyBot:
                 elif min_val == cur_val:
                     best_directions.append(cur_direction)
             if len(best_directions) > 0:
-                logging.debug('best_direction = ' + str(best_directions))
                 ants.issue_order((ant_loc, choice(best_directions)))
             
             # check if we still have time left to calculate more orders
+            logging.debug('ants.time_remaining() = ' + str(ants.time_remaining()))    
             if ants.time_remaining() < 10:
                 break
                 

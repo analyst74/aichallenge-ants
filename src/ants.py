@@ -310,7 +310,7 @@ class Ants():
                     if w in self.ant_list:
                         (owner, moved) = self.ant_list[w]
                         # this ant must be ours
-                        if owner == 0:
+                        if owner == MY_ANT:
                             # if ant has not moved yet, use it
                             if not moved:
                                 return (w, BEHIND[e])
@@ -354,7 +354,7 @@ class Ants():
     def calc_threat_level(self, loc):
         'calculate threat level of given location'
         # threat_radius adds on top of attackradius2
-        threat_radius = self.attackradius2 + 5
+        threat_radius = self.attackradius2 + 2
         enemy_count = friendly_count = 0
         # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
         # create a queue Q
@@ -373,14 +373,18 @@ class Ants():
                 w = self.destination(v, e)                
                 # w must not be water and 
                 # distance must be no greater than threat_radius
-                (w_row, w_col) = w                
+                (w_row, w_col) = w  
+                distance = self.distance(loc, w)
                 if (self.map[w_row][w_col] != WATER and 
-                    self.distance(loc, w) < threat_radius) :
+                    distance < threat_radius) :
                     # check if we find friendly or enemy ant
                     if w in self.ant_list:
                         (owner, moved) = self.ant_list[w]
-                        if owner == 0:
-                            friendly_count += 1
+                        logging.debug('found ant ' + str(w) + str(owner))
+                        # for own ant, need to be close by
+                        if owner == MY_ANT:
+                            if distance < 2:
+                                friendly_count += 1
                         else:
                             enemy_count += 1
                             
@@ -390,7 +394,7 @@ class Ants():
                         marked_dict[w] = True
                         # enqueue w onto Q
                         list_q.append(w)
-                        
+        logging.debug('enemy_count ' + str(enemy_count) + ' friendly_count' + str(friendly_count))
         return enemy_count / friendly_count if friendly_count > 0 else enemy_count
     
     def render_text_map(self):

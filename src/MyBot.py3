@@ -38,10 +38,9 @@ class MyBot:
         'combat logic'
         for ant_loc in ants.my_unmoved_ants():
             threat_level = ants.calc_threat_level(ant_loc)
-            # we do not deal with threat level = 1 or 0
-            # 1 means we are of equal force, so whatever
+            logging.debug('threat_level = ' + str(threat_level))
             # 0 means no enemy nearby
-            if threat_level > 1:
+            if threat_level >= 1:
                 retreat_directions = []
                 lowest_level = sys.maxsize
                 for d in ants.passable_directions(ant_loc):
@@ -52,8 +51,6 @@ class MyBot:
                         retreat_directions = [d]
                     elif lowest_level == d_threat_level:
                         retreat_directions.append(d)
-                if len(retreat_directions) == 0:
-                    retreat_directions = ants.passable_directions(ant_loc)
                 if len(retreat_directions) > 0:
                     ants.issue_order((ant_loc, choice(retreat_directions)))
             elif threat_level > 0 and threat_level < 1:
@@ -67,8 +64,6 @@ class MyBot:
                         attack_directions = [d]
                     elif highest_level == d_threat_level:
                         attack_directions.append(d)
-                if len(attack_directions) == 0:
-                    attack_directions = ants.passable_directions(ant_loc)
                 if len(attack_directions) > 0:
                     ants.issue_order((ant_loc, choice(attack_directions)))
     

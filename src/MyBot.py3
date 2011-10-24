@@ -54,7 +54,8 @@ class MyBot:
                         retreat_directions.append(d)
                 if len(retreat_directions) == 0:
                     retreat_directions = ants.passable_directions(ant_loc)
-                ants.issue_order((ant_loc, choice(retreat_directions)))
+                if len(retreat_directions) > 0:
+                    ants.issue_order((ant_loc, choice(retreat_directions)))
             elif threat_level > 0 and threat_level < 1:
                 attack_directions = []
                 highest_level = 0
@@ -68,7 +69,8 @@ class MyBot:
                         attack_directions.append(d)
                 if len(attack_directions) == 0:
                     attack_directions = ants.passable_directions(ant_loc)
-                ants.issue_order((ant_loc, choice(attack_directions)))
+                if len(attack_directions) > 0:
+                    ants.issue_order((ant_loc, choice(attack_directions)))
     
     def issue_raze_task(self, ants):
         'raze enemy hill'

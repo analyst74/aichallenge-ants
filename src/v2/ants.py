@@ -215,7 +215,7 @@ class Ants():
     def passable(self, loc):
         'true if not water or ant'
         row, col = loc
-        return self.map[row][col] > WATER and self.map[row][col] != 0
+        return self.map[row][col] > FOOD and self.map[row][col] != 0
         
     def passable_directions(self, loc):
         'finds valid move from given location, based on passable'

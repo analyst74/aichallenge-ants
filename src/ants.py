@@ -135,7 +135,7 @@ class Ants():
                 if len(tokens) == 2:
                     # log current turn
                     self.current_turn = tokens[1]
-                elif len(tokens) >= 3:
+                elif len(tokens) >= 3 and len(tokens[0]) == 1:
                     row = int(tokens[1])
                     col = int(tokens[2])
                     if tokens[0] == 'w':
@@ -144,6 +144,7 @@ class Ants():
                         self.map[row][col] = FOOD
                         self.food_list.append((row, col))
                     else:
+                        logging.debug('tokens = %s' % str(tokens))
                         owner = int(tokens[3])
                         if tokens[0] == 'a':
                             self.map[row][col] = owner
@@ -163,18 +164,71 @@ class Ants():
     def time_remaining(self):
         return self.turntime - int(1000 * (time.clock() - self.turn_start_time))
     
+    def flock_attack(self, loc, direction, max_search):
+        'simple flocking action'
+        ant_squad = []
+        
+        # high-level description:
+        # find all ants within search limits
+        # find all the ones who can move to @direction and move them
+        # do this until there is no more
+        
+        # TODO: consolidate the 3 different BFS search, if possible
+        # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
+        list_q = deque()
+        list_q.append(loc)
+        marked_dict = { loc: True }
+        search_count = 0
+        while len(list_q) > 0:
+            # limit max search depth and max ant moved
+            if search_count > max_search:
+                break
+            search_count += 1
+            # dequeue an item from Q into v
+            v = list_q.popleft()
+            # for each edge e incident on v in Graph:
+            for e in ALL_DIRECTIONS:
+                # let w be the other end of e
+                w = self.destination(v, e)
+                # if w is not marked
+                if w not in marked_dict:
+                    # w must not be water
+                    (w_row, w_col) = w
+                    if self.map[w_row][w_col] != WATER:
+                        # mark w
+                        marked_dict[w] = True
+                        # enqueue w onto Q
+                        list_q.append(w)
+                        if w in self.my_ants():
+                            ant_squad.append(w)
+                            
+        while True:
+            moved_ants = []
+            for ant_loc in ant_squad:
+                if self.passable(ant_loc):
+                    self.issue_order((ant_loc, direction))
+                    moved_ants.append(ant_loc)
+                    logging.debug('flocking from %s to %s ' % (str(ant_loc), direction))
+            if len(moved_ants) == 0:
+                break
+            else:
+                for ant_loc in moved_ants:
+                    ant_squad.remove(ant_loc)
+    
     def issue_order(self, order):
         'issue an order by writing the proper ant location and direction'
         (row, col), direction = order
         #early exit
         if direction is None:
             self.ant_list[(row,col)] = (MY_ANT, True)
+            logging.debug('moving %s -- stationary' % str((row, col)))
             return
         
         (newrow, newcol) = self.destination((row, col), direction)
         if self.passable((newrow, newcol)):
             sys.stdout.write('o %s %s %s\n' % (row, col, direction))
             sys.stdout.flush()
+            logging.debug('moving %s to %s' % (str((row, col)), str((newrow, newcol))))
             # update ant moved flag
             del self.ant_list[(row,col)]
             self.ant_list[(newrow, newcol)] = (MY_ANT, True)
@@ -222,9 +276,9 @@ class Ants():
         return self.food_list[:]
 
     def passable(self, loc):
-        'true if not water or ant'
+        'true if not water or ant or food'
         row, col = loc
-        return self.map[row][col] > WATER and self.map[row][col] != 0
+        return self.map[row][col] > FOOD and self.map[row][col] != 0
         
     def passable_directions(self, loc):
         'finds valid move from given location, based on passable'
@@ -283,10 +337,14 @@ class Ants():
                 d.append('e')
             if col1 - col2 <= width2:
                 d.append('w')
-        return d
+        return d        
 
-    def find_closest_ant_order(self, loc, max_search = 100):
-        'find closet ant that belongs to self to a particular location'        
+    def move_to_spot(self, loc, max_ant, max_search = 100):
+        'find closet ant that belongs to self to a particular location'
+        # return location of the first ant (after its move)
+        first_ant_loc = None
+        moved_ant_count = 0
+        
         # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
         # create a queue Q
         list_q = deque()
@@ -295,37 +353,48 @@ class Ants():
         # mark source
         marked_dict = { loc: True }
         
-        while_count = 0
+        search_count = 0
         while len(list_q) > 0:
-            # limit max search depth (in case all ants close by are occupied)
-            if while_count > max_search:
+            # limit max search depth and max ant moved
+            if search_count > max_search or moved_ant_count > max_ant:
                 break
-            while_count += 1
+            search_count += 1
             # dequeue an item from Q into v
             v = list_q.popleft()
             # for each edge e incident on v in Graph:
             for e in ALL_DIRECTIONS:
                 # let w be the other end of e
                 w = self.destination(v, e)
-                # w must not be water
-                (w_row, w_col) = w
-                if self.map[w_row][w_col] != WATER:                
-                    # break out if we find our own ant
-                    if w in self.my_ants():
-                        (owner, moved) = self.ant_list[w]
-                        # if ant has not moved yet, use it
-                        if not moved:
-                            if self.distance(loc, w) == 1:
-                                return (w, None)
-                            else:
-                                return (w, BEHIND[e])     
-                    # if w is not marked
-                    if not w in marked_dict:
+                # if w is not marked
+                if w not in marked_dict:
+                    # w must not be water
+                    (w_row, w_col) = w
+                    if self.map[w_row][w_col] != WATER:
                         # mark w
                         marked_dict[w] = True
                         # enqueue w onto Q
-                        list_q.append(w)
-        
+                        list_q.append(w)       
+                        # break out if we find our own ant
+                        if w in self.my_ants():
+                            (owner, moved) = self.ant_list[w]
+                            # if ant has not moved yet, use it
+                            if not moved:
+                                # only move in if target spot is move-in-able
+                                # there is only one case where v is not passable
+                                #   when it is the starting spot (i.e. hill raze leader)
+                                if self.passable(v):
+                                    self.issue_order((w, BEHIND[e]))
+                                else:
+                                    # stay stationary otherwise
+                                    self.issue_order((w, None))
+                                # set first ant
+                                if first_ant_loc is None:
+                                    first_ant_loc = w
+                                # increment ant count
+                                moved_ant_count += 1
+                        
+        return first_ant_loc  
+    
     def visible(self, loc):
         ' determine which squares are visible to the given player '
 
@@ -354,47 +423,69 @@ class Ants():
     
     def calc_threat_level(self, loc):
         'calculate threat level of given location'
+        logging.debug('calc_threat_level.start(%s) = %s' % (str(loc), str(self.time_remaining())))
         # threat_radius adds on top of attackradius2
-        threat_radius = self.attackradius2 + 2
-        enemy_count = friendly_count = 0
+        threat_radius = self.attackradius2 + 1
+        enemy_count = 0
+        friendly_count = 1 # current ant at loc is ours too
         # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
         # create a queue Q
         list_q = deque()
         # enqueue (source, level) onto Q
         list_q.append(loc)
-        # mark source
-        marked_dict = { loc: True }
+        # mark source, which has its value being its parent, for traversing purpose
+        marked_dict = { loc: None }
+        # gets course of action
+        # when running, run to closest friend
+        # when attacking, run to closest enemy
+        friendly_direction = None
+        enemy_direction = None
         
         while len(list_q) > 0:
             # dequeue an item from Q into v
             v = list_q.popleft()
             # for each edge e incident on v in Graph:
-            for e in ['n', 'e', 's', 'w']:
+            for e in ALL_DIRECTIONS:
                 # let w be the other end of e
-                w = self.destination(v, e)                
-                # w must not be water and 
-                # distance must be no greater than threat_radius
-                (w_row, w_col) = w  
-                distance = self.distance(loc, w)
-                if (self.map[w_row][w_col] != WATER and 
-                    distance < threat_radius) :
-                    # check if we find friendly or enemy ant
-                    if w in self.ant_list:
-                        (owner, moved) = self.ant_list[w]
-                        # for own ant, need to be close by
-                        if owner == MY_ANT:
-                            if distance < 2:
-                                friendly_count += 1
-                        else:
-                            enemy_count += 1
-                            
-                    # if w is not marked
-                    if not w in marked_dict:
+                w = self.destination(v, e)
+                # if w is not marked
+                if not w in marked_dict:
+                    # w must not be water and 
+                    # distance must be no greater than threat_radius
+                    (w_row, w_col) = w  
+                    distance = self.distance(loc, w)
+                    if (self.map[w_row][w_col] != WATER and 
+                        distance < threat_radius) :
                         # mark w
-                        marked_dict[w] = True
+                        marked_dict[w] = v
                         # enqueue w onto Q
-                        list_q.append(w)
-        return enemy_count / friendly_count if friendly_count > 0 else enemy_count
+                        list_q.append(w) 
+                        # check if we find friendly or enemy ant
+                        if w in self.ant_list:
+                            (owner, moved) = self.ant_list[w]
+                            logging.debug('calc_threat_level: found %d ant at %s, distance %f' % (owner, str(w), distance))
+                            # for own ant, need to be closer
+                            if owner == MY_ANT:
+                                if distance < 2:
+                                    friendly_count += 1
+                                # remember the first friendly 
+                                if friendly_direction is None and v != loc:
+                                    friendly_loc = v
+                                    while marked_dict[friendly_loc] != loc:
+                                        friendly_loc = marked_dict[friendly_loc]
+                                    friendly_direction = self.direction(loc, friendly_loc)[0]
+                            else:
+                                enemy_count += 1
+                                # remember the first enemy 
+                                if enemy_direction is None and v != loc:
+                                    enemy_loc = v
+                                    while marked_dict[enemy_loc] != loc:
+                                        enemy_loc = marked_dict[enemy_loc]
+                                    enemy_direction = self.direction(loc, enemy_loc)[0]
+
+        logging.debug('threat_level = %d / %d' % (enemy_count, friendly_count))        
+        logging.debug('calc_threat_level.finish = %s' % str(self.time_remaining())) 
+        return (enemy_count / friendly_count, friendly_direction, enemy_direction)
     
     def render_text_map(self):
         'return a pretty string representing the map'

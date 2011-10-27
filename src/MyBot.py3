@@ -22,10 +22,10 @@ class MyBot:
     # it also has several helper methods to use
     def do_turn(self, ants):
         logging.debug('turn ' + str(ants.current_turn))
+        # if a hill is really close, do it first before all other task
+        self.issue_raze_task(ants, 5)
         self.issue_gather_task(ants)
         logging.debug('after gather task: self.ant_list = %s' % str(ants.ant_list))
-        # fix problem where ant is not very eager to take nearby hill (combat logic takes precedence)
-        self.issue_raze_task(ants, 5)
         self.issue_combat_task(ants)
         self.issue_raze_task(ants, 300)
         self.issue_explore_task(ants)

@@ -1,0 +1,1 @@
+python tcpclient.py ants.fluxid.pl 2081 "python3 ..\src\v3\v3.py3" analyst74_v3 840425 %*

@@ -166,6 +166,12 @@ class Ants():
     def issue_order(self, order):
         'issue an order by writing the proper ant location and direction'        
         (row, col), direction = order
+        #early exit
+        if direction is None:
+            self.ant_list[(row,col)] = (MY_ANT, True)
+            logging.debug('moving %s -- stationary' % str((row, col)))
+            return
+            
         (newrow, newcol) = self.destination((row, col), direction)
         if self.passable((newrow, newcol)):
             sys.stdout.write('o %s %s %s\n' % (row, col, direction))

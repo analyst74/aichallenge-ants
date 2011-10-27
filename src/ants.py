@@ -63,6 +63,7 @@ class Ants():
         self.spawnradius2 = 0
         self.turns = 0
         self.current_turn = 0
+        self.counter = 0
 
     def setup(self, data):
         'parse initial input and setup starting game state'
@@ -96,6 +97,8 @@ class Ants():
 
     def update(self, data):
         'parse engine input and update the game state'
+        self.counter = 0
+        
         # start timer
         self.turn_start_time = time.clock()
         
@@ -144,7 +147,6 @@ class Ants():
                         self.map[row][col] = FOOD
                         self.food_list.append((row, col))
                     else:
-                        logging.debug('tokens = %s' % str(tokens))
                         owner = int(tokens[3])
                         if tokens[0] == 'a':
                             self.map[row][col] = owner
@@ -271,6 +273,14 @@ class Ants():
                     for (row, col), (owner, moved) in self.ant_list.items()
                     if owner != MY_ANT]
 
+    def is_ant(self, loc, has_moved, is_my_ant):
+        'get active ant, hack: enemy ant is always active'
+        if loc in self.ant_list:
+            owner, moved = self.ant_list[loc]
+            if moved == has_moved and is_my_ant == (owner == MY_ANT):
+                return True
+        return False
+                    
     def food(self):
         'return a list of all food locations'
         return self.food_list[:]
@@ -278,19 +288,18 @@ class Ants():
     def passable(self, loc):
         'true if not water or ant or food'
         row, col = loc
-        return self.map[row][col] > FOOD and self.map[row][col] != 0
+        return self.map[row][col] > FOOD and self.map[row][col] != ANTS
         
     def passable_directions(self, loc):
         'finds valid move from given location, based on passable'
         passable_directions = []
-        directions = ALL_DIRECTIONS
-        for direction in directions:
+        for direction in ALL_DIRECTIONS:
             new_loc = self.destination(loc, direction)
             if (self.passable(new_loc)):
                 passable_directions.append(direction)
                 
         return passable_directions
-    
+        
     def unoccupied(self, loc):
         'true if no ants are at the location'
         row, col = loc
@@ -486,7 +495,125 @@ class Ants():
         logging.debug('threat_level = %d / %d' % (enemy_count, friendly_count))        
         logging.debug('calc_threat_level.finish = %s' % str(self.time_remaining())) 
         return (enemy_count / friendly_count, friendly_direction, enemy_direction)
+
+    def is_water(self, loc):
+        (row, col) = loc
+        return self.map[row][col] == WATER
+        
+    def get_neighbour_locs(self, loc):
+        'get all neighbour locations, except those are water'
+        return [self.destination(loc, direction) for direction in ALL_DIRECTIONS        
+                        if not self.is_water(loc)]
+                        
+    def get_squad_formations(self, squad):
+        'get all possible formation of a squad in a single turn'
+        all_locs = [squad[0]] + self.get_neighbour_locs(squad[0])
+        full_result = []
+        if len(squad) > 1:
+            for sub_result in self.get_squad_formations(squad[1:]):
+                for ant_loc in all_locs:
+                    # no duplicate locations in each formation
+                    if ant_loc in sub_result:
+                        continue
+                    full_result.append([ant_loc] + sub_result)
+        else:
+            full_result = [[ant_loc] for ant_loc in all_locs]
+            
+        return full_result
     
+    def bfs(self, start_locs, range_limit, func_condition):
+        'finds list of locations meeting func_condition, and within func_limit'
+        logging.debug('bfs.start for %s' % str(start_locs))
+        # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
+        result = []
+        # create a queue Q
+        list_q = deque()
+        # enqueue (source, level) onto Q
+        list_q.extend(start_locs)
+        # mark source, which has its value being its parent, for traversing purpose
+        marked_dict = {}
+        for loc in start_locs:
+            marked_dict[loc] = None
+
+        while len(list_q) > 0:
+            # dequeue an item from Q into v
+            v = list_q.popleft()
+            # for each edge e incident on v in Graph:
+            for e in ALL_DIRECTIONS:
+                # let w be the other end of e
+                w = self.destination(v, e)
+                # if w is not marked
+                if not w in marked_dict:
+                    # w must not be water and 
+                    (w_row, w_col) = w  
+                    distance = min([self.distance(loc, w) for loc in start_locs])
+                    if (self.map[w_row][w_col] != WATER and 
+                        distance <= range_limit) :
+                        # mark w
+                        marked_dict[w] = v
+                        # enqueue w onto Q
+                        list_q.append(w) 
+                        # check if we find friendly or enemy ant
+                        if func_condition(w):
+                            result.append(w)
+    
+        logging.debug('bfs found result %s ' % str(result))
+        return result
+
+    def formation_score(self, my_formation, enemy_formation): 
+        'calculate formation score to influence squad action'
+        my_fighting_ants = {}
+        enemy_fighting_ants = {}
+        total_distance = 0
+        total_pair = 0
+        for m, e in [(m, e) for m in my_formation for e in enemy_formation]:
+            distance = self.distance(m, e)
+            total_distance += distance
+            total_pair += 1
+            if distance <= self.attackradius2:
+                my_fighting_ants[m] = True
+                enemy_fighting_ants[e] = True
+        # (score calculated by counting all ants within attack radius, my - enemy)
+        # additional preference for being closer to enemy
+        # TODO: change score calculation by using the actual fighting mechanism
+        return len(my_fighting_ants) - len(enemy_fighting_ants) - total_distance / total_pair / 10
+        
+    def squad_pruning(self, my_formation, enemy_formation, search_timeout, max_depth):
+        'prune score of current formation by finding best score for future formation'
+        self.counter += 1
+        if max_depth == 0 or self.time_remaining() < search_timeout:
+            score = (my_formation, self.formation_score(my_formation, enemy_formation))
+            logging.debug('score = %s' % str(score))
+            return score
+        
+        next_permutations = self.get_squad_formations(my_formation)
+        best_child_formation = my_formation
+        child_score = -sys.maxsize
+        for np in next_permutations:
+            (gc_formation, gc_score) = self.squad_pruning(np, enemy_formation, search_timeout, max_depth - 1)
+            if gc_score > child_score:
+                child_score = gc_score
+                best_child_formation = np
+                
+        return (np, child_score)
+        
+    def squad_operation(self, my_ants):
+        'decide what is best for a given squad of ants'
+        logging.debug('squad_operation.start %s' % str(self.time_remaining()))
+        # using multi beginning point BFS, find enemy ants within attack_radius + 2
+        enemy_ants = self.bfs(my_ants, self.attackradius2 + 2, lambda loc : self.is_ant(loc, False, False))
+        logging.debug('squad_operation.found enemy ants %s' % str(enemy_ants))
+        self.counter = 0
+        (my_best_formation, score) = self.squad_pruning(my_ants, enemy_ants, self.time_remaining() - 100, 3)
+        
+        logging.debug('squad_operation.prune_counter = %d' % self.counter)
+        logging.debug('squad_operation.2 %s' % str(self.time_remaining()))
+        # issue command to morph into my_best_formation
+        logging.debug('squad_operation.moving %s to %s, score = %s' % (str(my_ants), str(my_best_formation), str(score)))
+        for i in range(len(my_ants)):
+            direction = self.direction(my_ants[i], my_best_formation[i])
+            self.issue_order((my_ants[i], None if len(direction) == 0 else direction[0]))
+        
     def render_text_map(self):
         'return a pretty string representing the map'
         tmp = ''

@@ -59,7 +59,8 @@ class MyBot:
             # 0 means no enemy nearby
             if threat_level >= 1:
                 logging.debug('retreating from %s to %s ' % (str(ant_loc), friendly_direction))
-                ants.issue_order((ant_loc, BEHIND[enemy_direction]))
+                if enemy_direction is not None:
+                    ants.issue_order((ant_loc, BEHIND[enemy_direction]))
                 ants.move_to_spot(ant_loc, 5, 100)
             elif threat_level > 0 and threat_level < 1:
                 logging.debug('attacking from %s to %s ' % (str(ant_loc), enemy_direction))

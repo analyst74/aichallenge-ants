@@ -38,10 +38,10 @@ class MyBot:
         for food_loc in ants.food_list:            
             ants.move_to_spot(food_loc, 1, search_limit)
             logging.debug('issue_gather_task for food %s, time_remaining %s ' % (str(food_loc), str(ants.time_remaining())))
-    
+        
     def issue_combat_task(self, ants):
         'combat logic'
-        logging.debug('issue_combat_task.start = ' + str(ants.time_remaining())) 
+        logging.debug('issue_combat_task.start = %s' % str(ants.time_remaining())) 
         for ant_loc in ants.my_unmoved_ants():
             # some of the previously unmoved ants might have been moved            
             if ant_loc not in ants.ant_list:
@@ -49,30 +49,15 @@ class MyBot:
             owner, moved = ants.ant_list[ant_loc]
             if moved:
                 continue
-                
-            (threat_level, friendly_direction, enemy_direction) = ants.calc_threat_level(ant_loc)
-            if threat_level > 0:
-                logging.debug('combat_task for %s' % str(ant_loc))
-                logging.debug('threat_level = ' + str(threat_level))
-                logging.debug('ants.time_remaining().stage 2 = ' + str(ants.time_remaining())) 
-                
-            # 0 means no enemy nearby
-            if threat_level >= 1:
-                logging.debug('retreating from %s to %s ' % (str(ant_loc), friendly_direction))
-                ants.issue_order((ant_loc, BEHIND[enemy_direction]))
-                ants.move_to_spot(ant_loc, 5, 100)
-            elif threat_level > 0 and threat_level < 1:
-                logging.debug('attacking from %s to %s ' % (str(ant_loc), enemy_direction))
-                #ants.issue_order((ant_loc, enemy_direction))
-                ants.flock_attack(ant_loc, enemy_direction, 20)
-            #elif threat_level == 1:                     
-            #    # set ant to stationary, wait for better opportunity
-            #    ants.issue_order((ant_loc, None))
-            #    # call for help, gang bang time!
-            #    ants.move_to_spot(ants.destination(ant_loc, enemy_direction), 5, 100)
+            
+            enemy_ants = ants.bfs([ant_loc], ants.attackradius2 + 2, lambda loc : ants.is_ant(loc, False, False))
+            if len(enemy_ants) > 0:
+                my_ants = [ant_loc] + ants.bfs([ant_loc], 3, lambda loc : ants.is_ant(loc, False, True))
+                logging.debug('found enemy(%s), and following friendly (%s) ant near %s' % (str(enemy_ants), str(my_ants), str(ant_loc)))
+                logging.debug('working on squad = %s, time = %s' % (str(my_ants), str(ants.time_remaining())))
+                ants.squad_operation(my_ants)
             
             # check if we still have time left to calculate more orders
-            logging.debug('ants.time_remaining() = ' + str(ants.time_remaining()))    
             if ants.time_remaining() < 100:
                 break
                 

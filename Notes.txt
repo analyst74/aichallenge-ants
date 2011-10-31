@@ -1,3 +1,12 @@
+Random sparkles:
+- improve long distance BFS search by BP value, i.e. razing far-away hill
+	i.e. starting from a hill with 0 BP value, find first spot with non-zero BP value, then restart from there, until either finding enough ants or reaching another threadhold (BP value > 2x current?)
+- improve food gathering
+	feed all food into bfs search at the same time, then find out if there is way to optimize ants, i.e. prioritize food with adjacent food
+- combat, start from enemy ants, find all "my ants" within certain range (i.e. attackradius + 3), permutate those ants formation for next round, prefer following formations:
+	a, after rounding-up all distances, prefer more of my ants be within the front-line, fewer of enemy ants vice-versa
+	b, depends on front-line strength, prefer closer range (me strong), or further range (enemy strong), or maintain position (roughly equi)
+
 Architecture:
 - each ant has a flag marking it as free/moved
 - main game loop start with various tasks, ordered by precedence, and move appropriate ant to achieve those objectives. this process repeats until all tasks are completed

@@ -1,4 +1,5 @@
 Random sparkles:
+- implement proper influence mapping
 - improve long distance BFS search by BP value, i.e. razing far-away hill
 	i.e. starting from a hill with 0 BP value, find first spot with non-zero BP value, then restart from there, until either finding enough ants or reaching another threadhold (BP value > 2x current?)
 - improve food gathering

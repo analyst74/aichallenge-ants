@@ -1,0 +1,41 @@
+1, loop through all enemy ants, group them up:
+    recursive implementation:
+        # - add all enemy_ants into open_set
+        # - while len(open_set) > 0:
+        #   - get last e_ant from open_set
+        #   - get all comrades(including e_ant) from get_comrades()
+        #   - add comrades to comrade_set
+        
+        # get_comrades(e_ant, comrades, open_set)
+        #   - add e_ant to comrades
+        #   - remove e_ant from open_set
+        #   - find immediate_comrades of e_ant from open_set
+        #   - for all immediate_comrades of e_ant:
+        #       - get other_comrades by calling get_comrades
+        #   - return (e_ant) + (immediate_comrades) + (other_comrades)
+        
+    iterative implementation:
+        # - add all enemy_ants into open_set
+        # - while len(open_set) > 0:
+        #  - pop e_ant from open_set
+        #  - add e_ant to a new group in group_set
+        #  - for group_index = 0, while group_index < len(group)
+        #   - for group[group_index], find all comrade_ants within group_distance in open_set
+        #   - add comrade_ants to group, 
+        #   - remove them from open_set
+        #   - grou_index++
+    
+2, for each enemy_group, find corresponding my_group:
+    do bfs from all ants in enemy_group, find all my ants within distance
+    
+3, for each combat zone (defined by corresponding enemy_group and my_group), 
+    - do 1-step permutation on my_group, and find the optimal formation:
+    - find euclidean distance of all enemy/my ant pairs, only keep the pairs with smallest distance
+    - count distinct enemy_ant_count and my_ant_count
+    - score = my_ant_count - enemy_ant_count, bigger is preferable
+    - in case of same score, do the following:
+        if score >= 0: prefer smaller distance
+        if score < 0: prefer smallest distance >= attack_radius + 2
+        
+4, find out how to achieve such formation with one move
+5, move the ants!

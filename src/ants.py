@@ -6,14 +6,15 @@ import time
 from collections import defaultdict
 from math import sqrt
 from collections import deque
+from decimal import *
 
 import logging
 DEBUG_LOG_NAME = 'debug.log'
 logging.basicConfig(filename=DEBUG_LOG_NAME,level=logging.DEBUG,filemode='w')
 
-HILL = 1
+HILL = 20
+# enemy number will range from 1 to n-1, where n is total number of players on map
 MY_ANT = 0
-ANTS = 0
 DEAD = -1
 LAND = -2
 FOOD = -3
@@ -63,6 +64,8 @@ class Ants():
         self.spawnradius2 = 0
         self.turns = 0
         self.current_turn = 0
+        self.sqrt_table = {}
+        # formation permutation counter, to be removed after profiling
         self.counter = 0
 
     def setup(self, data):
@@ -94,7 +97,7 @@ class Ants():
                     for row in range(self.rows)]
         self.beaten_path = [[0 for col in range(self.cols)]
                             for row in range(self.rows)]
-
+                            
     def update(self, data):
         'parse engine input and update the game state'
         self.counter = 0
@@ -164,58 +167,10 @@ class Ants():
                             self.hill_list[(row, col)] = owner
 
     def time_remaining(self):
-        return self.turntime - int(1000 * (time.clock() - self.turn_start_time))
+        return self.turntime - self.time_elapsed()
     
-    def flock_attack(self, loc, direction, max_search):
-        'simple flocking action'
-        ant_squad = []
-        
-        # high-level description:
-        # find all ants within search limits
-        # find all the ones who can move to @direction and move them
-        # do this until there is no more
-        
-        # TODO: consolidate the 3 different BFS search, if possible
-        # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
-        list_q = deque()
-        list_q.append(loc)
-        marked_dict = { loc: True }
-        search_count = 0
-        while len(list_q) > 0:
-            # limit max search depth and max ant moved
-            if search_count > max_search:
-                break
-            search_count += 1
-            # dequeue an item from Q into v
-            v = list_q.popleft()
-            # for each edge e incident on v in Graph:
-            for e in ALL_DIRECTIONS:
-                # let w be the other end of e
-                w = self.destination(v, e)
-                # if w is not marked
-                if w not in marked_dict:
-                    # w must not be water
-                    (w_row, w_col) = w
-                    if self.map[w_row][w_col] != WATER:
-                        # mark w
-                        marked_dict[w] = True
-                        # enqueue w onto Q
-                        list_q.append(w)
-                        if w in self.my_ants():
-                            ant_squad.append(w)
-                            
-        while True:
-            moved_ants = []
-            for ant_loc in ant_squad:
-                if self.passable(ant_loc):
-                    self.issue_order((ant_loc, direction))
-                    moved_ants.append(ant_loc)
-                    logging.debug('flocking from %s to %s ' % (str(ant_loc), direction))
-            if len(moved_ants) == 0:
-                break
-            else:
-                for ant_loc in moved_ants:
-                    ant_squad.remove(ant_loc)
+    def time_elapsed(self):
+        return int(1000 * (time.clock() - self.turn_start_time))
     
     def issue_order(self, order):
         'issue an order by writing the proper ant location and direction'
@@ -288,7 +243,7 @@ class Ants():
     def passable(self, loc):
         'true if not water or ant or food'
         row, col = loc
-        return self.map[row][col] > FOOD and self.map[row][col] != ANTS
+        return self.map[row][col] > FOOD and self.map[row][col] != MY_ANT
         
     def passable_directions(self, loc):
         'finds valid move from given location, based on passable'
@@ -311,14 +266,32 @@ class Ants():
         d_row, d_col = AIM[direction]
         return ((row + d_row) % self.rows, (col + d_col) % self.cols)        
 
-    def distance(self, loc1, loc2):
-        'calculate the closest distance between to locations'
+    def manhattan_distance(self, loc1, loc2):
+        'calculate the manhattan distance between to locations'
         row1, col1 = loc1
         row2, col2 = loc2
         d_col = min(abs(col1 - col2), self.cols - abs(col1 - col2))
         d_row = min(abs(row1 - row2), self.rows - abs(row1 - row2))
         return d_row + d_col
 
+    def euclidean_distance2(self, loc1, loc2):
+        'calculate the euclidean distance between to locations'
+        row1, col1 = loc1
+        row2, col2 = loc2
+        d_col = min(abs(col1 - col2), self.cols - abs(col1 - col2))
+        d_row = min(abs(row1 - row2), self.rows - abs(row1 - row2))
+        return d_row**2 + d_col**2
+        
+    def euclidean_distance_add(self, distance2, addition):
+        'do euclidean math.add'
+        distance = self.get_sqrt(distance2)
+        return (distance+addition)**2
+
+    def get_sqrt(self, num):
+        if num not in self.sqrt_table:
+            self.sqrt_table[num] = sqrt(num)
+        return self.sqrt_table[num]
+            
     def direction(self, loc1, loc2):
         'determine the 1 or 2 fastest (closest) directions to reach a location'
         row1, col1 = loc1
@@ -430,72 +403,6 @@ class Ants():
         row, col = loc
         return self.vision[row][col]
     
-    def calc_threat_level(self, loc):
-        'calculate threat level of given location'
-        logging.debug('calc_threat_level.start(%s) = %s' % (str(loc), str(self.time_remaining())))
-        # threat_radius adds on top of attackradius2
-        threat_radius = self.attackradius2 + 1
-        enemy_count = 0
-        friendly_count = 1 # current ant at loc is ours too
-        # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
-        # create a queue Q
-        list_q = deque()
-        # enqueue (source, level) onto Q
-        list_q.append(loc)
-        # mark source, which has its value being its parent, for traversing purpose
-        marked_dict = { loc: None }
-        # gets course of action
-        # when running, run to closest friend
-        # when attacking, run to closest enemy
-        friendly_direction = None
-        enemy_direction = None
-        
-        while len(list_q) > 0:
-            # dequeue an item from Q into v
-            v = list_q.popleft()
-            # for each edge e incident on v in Graph:
-            for e in ALL_DIRECTIONS:
-                # let w be the other end of e
-                w = self.destination(v, e)
-                # if w is not marked
-                if not w in marked_dict:
-                    # w must not be water and 
-                    # distance must be no greater than threat_radius
-                    (w_row, w_col) = w  
-                    distance = self.distance(loc, w)
-                    if (self.map[w_row][w_col] != WATER and 
-                        distance < threat_radius) :
-                        # mark w
-                        marked_dict[w] = v
-                        # enqueue w onto Q
-                        list_q.append(w) 
-                        # check if we find friendly or enemy ant
-                        if w in self.ant_list:
-                            (owner, moved) = self.ant_list[w]
-                            logging.debug('calc_threat_level: found %d ant at %s, distance %f' % (owner, str(w), distance))
-                            # for own ant, need to be closer
-                            if owner == MY_ANT:
-                                if distance < 2:
-                                    friendly_count += 1
-                                # remember the first friendly 
-                                if friendly_direction is None and v != loc:
-                                    friendly_loc = v
-                                    while marked_dict[friendly_loc] != loc:
-                                        friendly_loc = marked_dict[friendly_loc]
-                                    friendly_direction = self.direction(loc, friendly_loc)[0]
-                            else:
-                                enemy_count += 1
-                                # remember the first enemy 
-                                if enemy_direction is None and v != loc:
-                                    enemy_loc = v
-                                    while marked_dict[enemy_loc] != loc:
-                                        enemy_loc = marked_dict[enemy_loc]
-                                    enemy_direction = self.direction(loc, enemy_loc)[0]
-
-        logging.debug('threat_level = %d / %d' % (enemy_count, friendly_count))        
-        logging.debug('calc_threat_level.finish = %s' % str(self.time_remaining())) 
-        return (enemy_count / friendly_count, friendly_direction, enemy_direction)
-
     def is_water(self, loc):
         (row, col) = loc
         return self.map[row][col] == WATER
@@ -504,26 +411,10 @@ class Ants():
         'get all neighbour locations, except those are water'
         return [self.destination(loc, direction) for direction in ALL_DIRECTIONS        
                         if not self.is_water(loc)]
-                        
-    def get_squad_formations(self, squad):
-        'get all possible formation of a squad in a single turn'
-        all_locs = [squad[0]] + self.get_neighbour_locs(squad[0])
-        full_result = []
-        if len(squad) > 1:
-            for sub_result in self.get_squad_formations(squad[1:]):
-                for ant_loc in all_locs:
-                    # no duplicate locations in each formation
-                    if ant_loc in sub_result:
-                        continue
-                    full_result.append([ant_loc] + sub_result)
-        else:
-            full_result = [[ant_loc] for ant_loc in all_locs]
-            
-        return full_result
-    
+
     def bfs(self, start_locs, range_limit, func_condition):
         'finds list of locations meeting func_condition, and within func_limit'
-        logging.debug('bfs.start for %s' % str(start_locs))
+        #logging.debug('bfs.start for %s' % str(start_locs))
         # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
         result = []
         # create a queue Q
@@ -546,7 +437,7 @@ class Ants():
                 if not w in marked_dict:
                     # w must not be water and 
                     (w_row, w_col) = w  
-                    distance = min([self.distance(loc, w) for loc in start_locs])
+                    distance = min([self.euclidean_distance2(loc, w) for loc in start_locs])
                     if (self.map[w_row][w_col] != WATER and 
                         distance <= range_limit) :
                         # mark w
@@ -557,62 +448,221 @@ class Ants():
                         if func_condition(w):
                             result.append(w)
     
-        logging.debug('bfs found result %s ' % str(result))
+        #logging.debug('bfs found result %s ' % str(result))
         return result
 
-    def formation_score(self, my_formation, enemy_formation): 
-        'calculate formation score to influence squad action'
-        my_fighting_ants = {}
-        enemy_fighting_ants = {}
-        total_distance = 0
-        total_pair = 0
-        for m, e in [(m, e) for m in my_formation for e in enemy_formation]:
-            distance = self.distance(m, e)
-            total_distance += distance
-            total_pair += 1
-            if distance <= self.attackradius2:
-                my_fighting_ants[m] = True
-                enemy_fighting_ants[e] = True
-        # (score calculated by counting all ants within attack radius, my - enemy)
-        # additional preference for being closer to enemy
-        # TODO: change score calculation by using the actual fighting mechanism
-        return len(my_fighting_ants) - len(enemy_fighting_ants) - total_distance / total_pair / 10
+    def get_my_ants_in_range(self, enemy_group, range):        
+        'find all my ants within distance of enemy_group'
+        # instead of looping through all self.my_ants() like we do with finding enemy ants
+        # we want to use bfs with self.map, as self.my_ants() could be fairly big in late game
+        my_group = self.bfs(enemy_group, range, 
+            lambda loc : self.map[loc[0]][loc[1]] == MY_ANT and self.ant_list[loc][1] == False)
         
-    def squad_pruning(self, my_formation, enemy_formation, search_timeout, max_depth):
-        'prune score of current formation by finding best score for future formation'
-        self.counter += 1
-        if max_depth == 0 or self.time_remaining() < search_timeout:
-            score = (my_formation, self.formation_score(my_formation, enemy_formation))
-            logging.debug('score = %s' % str(score))
-            return score
+        return my_group
         
-        next_permutations = self.get_squad_formations(my_formation)
-        best_child_formation = my_formation
-        child_score = -sys.maxsize
-        for np in next_permutations:
-            (gc_formation, gc_score) = self.squad_pruning(np, enemy_formation, search_timeout, max_depth - 1)
-            if gc_score > child_score:
-                child_score = gc_score
-                best_child_formation = np
+    def get_combat_zones(self):
+        'get all current combat zones'        
+        #group_distance = self.viewradius2
+        group_distance = self.euclidean_distance_add(self.attackradius2, 2)
+        enemy_ants = [ant_loc for ant_loc, owner in self.enemy_ants()]
+        open_set = enemy_ants + self.get_my_ants_in_range(enemy_ants, group_distance)
+        group_set = []
+        while len(open_set) > 0:
+            ant_loc = open_set.pop()
+            group_i = 0
+            zone_ants = [ant_loc]
+            while len(zone_ants) > group_i:
+                nearby_ants = [ant for ant in open_set 
+                    if self.euclidean_distance2(zone_ants[group_i], ant) <= group_distance]
+                open_set = [ant for ant in open_set if ant not in nearby_ants]
+                zone_ants.extend(nearby_ants)
+                group_i += 1
+            
+            group_set.append(([ant for ant in zone_ants if self.ant_list[ant][0] == MY_ANT], 
+                [ant for ant in zone_ants if self.ant_list[ant][0] != MY_ANT]))
+
+        #logging.debug('get_combat_zones, group_set = %s' % (str(group_set)))
+        
+        return group_set
+        
+    def get_fighter_groups(self):
+        'get all my fighter ants in groups'
+        group_distance = self.euclidean_distance_add(self.attackradius2, 2)
+        enemy_ants = [ant_loc for ant_loc, owner in self.enemy_ants()]
+        open_fighters = self.bfs(enemy_ants, group_distance, 
+            lambda loc : self.map[loc[0]][loc[1]] == MY_ANT and self.ant_list[loc][1] == False)
+            
+        fighter_groups = []
+        while len(open_fighters) > 0:
+            first_ant = open_fighters.pop()
+            group = [first_ant]
+            group_i = 0
+            while len(group) > group_i:
+                friends = [ant for ant in open_fighters if self.euclidean_distance2(group[group_i], ant) < self.attackradius2]
+                group.extend(friends)
+                open_fighters = [ant for ant in open_fighters if ant not in friends]
+                group_i += 1
                 
-        return (np, child_score)
+            fighter_groups.append(group)
+            
+        return fighter_groups
+    
+    def get_group_formations(self, group):
+        'get all possible formation of a group in a single turn'
+        # special: ant indexes do not change, in other words, actual orders needed to get from 
+        # group to full_result is just group[i] move to full_result[i]
+        all_locs = [group[0]] + self.get_neighbour_locs(group[0])
+        full_result = []
+        if len(group) > 1:
+            for sub_result in self.get_group_formations(group[1:]):
+                for ant_loc in all_locs:
+                    # no duplicate locations in each formation
+                    if ant_loc in sub_result:
+                        continue
+                    full_result.append([ant_loc] + sub_result)
+        else:
+            full_result = [[ant_loc] for ant_loc in all_locs]
+            
+        return full_result
         
-    def squad_operation(self, my_ants):
-        'decide what is best for a given squad of ants'
-        logging.debug('squad_operation.start %s' % str(self.time_remaining()))
-        # using multi beginning point BFS, find enemy ants within attack_radius + 2
-        enemy_ants = self.bfs(my_ants, self.attackradius2 + 2, lambda loc : self.is_ant(loc, False, False))
-        logging.debug('squad_operation.found enemy ants %s' % str(enemy_ants))
-        self.counter = 0
-        (my_best_formation, score) = self.squad_pruning(my_ants, enemy_ants, self.time_remaining() - 100, 3)
+    def eval_formation(self, my_formation, enemy_formation):
+        'return score, min_distance for the given my_formation/enemy_formation'
+        # generate all pairs
+        all_pairs = [(m, e) for m in my_formation for e in enemy_formation]
+        # find the min_distance between our ants, using manhattan_distance for now
+        # TODO: figure out if we can use euclidean distance, with a way to round distance 
+        all_distances = [self.manhattan_distance(m,e) for m in my_formation for e in enemy_formation]
+        min_distance = min(all_distances)
+        # find out fighting pairs by getting all_pairs that has min_distance
+        fighting_pairs = [all_pairs[i] for i,x in enumerate(all_distances) if x == min_distance]
+        # create set (this ensures uniqueness)
+        my_fighters = {}
+        enemy_fighters = {}
+        for m, e in fighting_pairs:
+            my_fighters[m] = 1
+            enemy_fighters[e] = 1
         
-        logging.debug('squad_operation.prune_counter = %d' % self.counter)
-        logging.debug('squad_operation.2 %s' % str(self.time_remaining()))
-        # issue command to morph into my_best_formation
-        logging.debug('squad_operation.moving %s to %s, score = %s' % (str(my_ants), str(my_best_formation), str(score)))
-        for i in range(len(my_ants)):
-            direction = self.direction(my_ants[i], my_best_formation[i])
-            self.issue_order((my_ants[i], None if len(direction) == 0 else direction[0]))
+        return (len(my_fighters) - len(enemy_fighters), min_distance)
+        
+    def eval_formation_2(self, my_formation, enemy_formation):
+        'return score, min_distance for the given my_formation/enemy_formation'
+        fighting_pairs = [(m, e) for m in my_formation for e in enemy_formation if self.euclidean_distance2(m,e) <= self.attackradius2]
+        my_fighters = {}
+        enemy_fighters = {}
+        for m, e in fighting_pairs:
+            my_fighters[m] = 1
+            enemy_fighters[e] = 1
+        
+        return len(my_fighters) - len(enemy_fighters)
+    
+    def get_best_formation_cohesion(self, formations):
+        'return the formation with tightest group cohesion'
+        cohesion_values = [self.get_formation_cohesion(f) for f in formations]
+        return formations[cohesion_values.index(max(cohesion_values))]
+        
+    def get_formation_cohesion(self, formation):
+        'return formation cohesion value, euclidean_distance2 < 3'
+        value = 0
+        for ant in formation:
+            value += len([a for a in formation if self.euclidean_distance2(ant,a) < 3])
+            
+        return value
+    
+    def do_group_combat(self, group):
+        'optimize for best cohesion'
+        formations = self.get_group_formations(group)
+        logging.debug('my_formations.count = %d, time_remaining = %s' % (len(formations), str(self.time_remaining())))
+        best_formation = self.get_best_formation_cohesion(formations)
+        logging.debug('finished finding best_formation, time_remaining = %s' % (str(self.time_remaining())))
+        logging.debug('best_formation = %s' % (str(best_formation)))
+        # issue orders
+        for i in range(len(group)):	
+            direction = self.direction(group[i], best_formation[i])
+            self.issue_order((group[i], None if len(direction) == 0 else direction[0]))
+    
+    def do_zone_combat2(self, zone):
+        'optimize best move for given combat_zone, which is (my_ants, enemy_ants)'
+        #logging.debug('do_zone_combat.start = %s' % str(self.time_remaining()))
+        my_group, enemy_group = zone
+        my_formations = self.get_group_formations(my_group)
+        # all_scores = []
+        # for my_formation in my_formations:
+            # score = self.eval_formation_2(my_formation, enemy_group)
+            # all_scores.append(score)
+            
+        # best_score = max(all_scores)
+        # logging.debug('best_score = %s' % str(best_score))
+        
+        #if all_scores.count(best_score) == 1 or best_score > 0:
+        #    best_formation = my_formations[all_scores.index(best_score)]
+        #else:
+        #    # smallest best_score can ever be is 0, with eval_2 function, prefer cohesion
+        #    valid_formations = [formation for i, formation in enumerate(my_formations) if all_scores[i] == best_score]
+        #    best_formation = self.get_best_formation_cohesion(valid_formations)
+        logging.debug('my_formations.count = %d, time_remaining = %s' % (len(my_formations), str(self.time_remaining())))
+        best_formation = self.get_best_formation_cohesion(my_formations)
+        logging.debug('finished finding best_formation, time_remaining = %s' % (str(self.time_remaining())))
+            
+        logging.debug('best_formation = %s' % (str(best_formation)))
+        # issue orders
+        for i in range(len(my_group)):	
+            direction = self.direction(my_group[i], best_formation[i])
+            self.issue_order((my_group[i], None if len(direction) == 0 else direction[0]))
+        
+        
+    def do_zone_combat(self, zone):
+        'optimize best move for given combat_zone, which is (my_ants, enemy_ants)'
+        #logging.debug('do_zone_combat.start = %s' % str(self.time_remaining()))
+        # - do 1-step permutation on my_group, and find the optimal formation:
+        # - find euclidean distance of all enemy/my ant pairs, only keep the pairs with smallest distance
+        # - count distinct enemy_ant_count and my_ant_count
+        # - score = my_ant_count - enemy_ant_count, bigger is preferable
+        # - in case of same score, do the following:
+        #       if score > 0: prefer smaller distance
+        #       if score < 0: prefer largest distance
+        #       if score == 0: prefer smallest distance larger than attack_radius + 1, else largest distance
+        my_group, enemy_group = zone
+        my_formations = self.get_group_formations(my_group)
+        all_scores = []
+        all_min_dist = []
+        i = 0
+        logging.debug('my_formations.count = %d, time_remaining = %s' % (len(my_formations), str(self.time_remaining())))
+        for my_formation in my_formations:
+            score, min_dist = self.eval_formation(my_formation, enemy_group)
+            all_scores.append(score)
+            all_min_dist.append(min_dist)
+        logging.debug('finished calculating best_score, time_remaining = %s' % (str(self.time_remaining())))
+            
+        best_score = max(all_scores)
+        logging.debug('best_score = %s' % str(best_score))
+        # logging.debug('my_formations = %s' % str(my_formations))
+        # logging.debug('all_scores = %s' % str(all_scores))
+        # logging.debug('all_min_dist = %s' % str(all_min_dist))
+        
+        if all_scores.count(best_score) == 1:
+            best_formation = my_formations[all_scores.index(best_score)]
+        else:
+            best_score_indexes = [i for i,x in enumerate(all_scores) if x == best_score]
+            valid_best_distances = [dist for i, dist in enumerate(all_min_dist) if i in best_score_indexes]
+            if best_score > 0:
+                best_distance = min(valid_best_distances)
+            elif best_score < 0:
+                best_distance = max(valid_best_distances)
+            else:
+                safe_distances = [distance for distance in valid_best_distances 
+                    if distance > self.euclidean_distance_add(self.attackradius2, 2)]
+                logging.debug('safe_distances = %s' % (str(safe_distances)))
+                if len(safe_distances) > 0:
+                    best_distance = min(valid_best_distances)
+                else:
+                    best_distance = max(valid_best_distances)
+            best_formation = my_formations[all_min_dist.index(best_distance)]
+            
+        logging.debug('best_formation = %s' % (str(best_formation)))
+        # issue orders
+        for i in range(len(my_group)):	
+            direction = self.direction(my_group[i], best_formation[i])
+            self.issue_order((my_group[i], None if len(direction) == 0 else direction[0]))
         
     def render_text_map(self):
         'return a pretty string representing the map'

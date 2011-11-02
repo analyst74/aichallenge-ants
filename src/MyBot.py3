@@ -15,6 +15,7 @@ class MyBot:
     # the ants class is created and setup by the Ants.run method
     def do_setup(self, ants):
         # initialize data structures after learning the game settings
+        logging.debug('ants.euclidean_distance_add(ants.attackradius2, 2) = %s' % str(ants.euclidean_distance_add(ants.attackradius2, 2)))
         pass
     
     # do turn is run once per turn
@@ -25,10 +26,11 @@ class MyBot:
         # if a hill is really close, do it first before all other task
         self.issue_raze_task(ants, 5)
         self.issue_gather_task(ants)
-        logging.debug('after gather task: self.ant_list = %s' % str(ants.ant_list))
+        #logging.debug('after gather task: self.ant_list = %s' % str(ants.ant_list))
         self.issue_combat_task(ants)
         self.issue_raze_task(ants, 300)
         self.issue_explore_task(ants)
+        logging.debug('endturn: ant_count = %d, time_elapsed = %s' % (len(ants.ant_list), ants.time_elapsed()))
 
     def issue_gather_task(self, ants):
         'gather food'
@@ -37,25 +39,16 @@ class MyBot:
         search_limit = max(20, int(200 / marginal_limit))
         for food_loc in ants.food_list:            
             ants.move_to_spot(food_loc, 1, search_limit)
-            logging.debug('issue_gather_task for food %s, time_remaining %s ' % (str(food_loc), str(ants.time_remaining())))
         
     def issue_combat_task(self, ants):
         'combat logic'
         logging.debug('issue_combat_task.start = %s' % str(ants.time_remaining())) 
-        for ant_loc in ants.my_unmoved_ants():
-            # some of the previously unmoved ants might have been moved            
-            if ant_loc not in ants.ant_list:
-                continue
-            owner, moved = ants.ant_list[ant_loc]
-            if moved:
-                continue
-            
-            enemy_ants = ants.bfs([ant_loc], ants.attackradius2 + 2, lambda loc : ants.is_ant(loc, False, False))
-            if len(enemy_ants) > 0:
-                my_ants = [ant_loc] + ants.bfs([ant_loc], 3, lambda loc : ants.is_ant(loc, False, True))
-                logging.debug('found enemy(%s), and following friendly (%s) ant near %s' % (str(enemy_ants), str(my_ants), str(ant_loc)))
-                logging.debug('working on squad = %s, time = %s' % (str(my_ants), str(ants.time_remaining())))
-                ants.squad_operation(my_ants)
+        fighter_groups = ants.get_fighter_groups()
+        
+        logging.debug('fighter_groups = %s' % str(fighter_groups))
+        for group in fighter_groups:
+            logging.debug('group combat loop for = %s' % str(group))
+            ants.do_group_combat(group)
             
             # check if we still have time left to calculate more orders
             if ants.time_remaining() < 100:
@@ -67,12 +60,11 @@ class MyBot:
         'raze enemy hill'
         # send 20% of total ants to attack
         logging.debug('raze.start = ' + str(ants.time_remaining())) 
-        max_malitia = int(len(ants.ant_list) / 5)
+        max_malitia = len(ants.ant_list) // 5
         for hill_loc, owner in ants.enemy_hills():
             logging.debug('issue_raze_task for %s' % str(hill_loc))
             leader_loc = ants.move_to_spot(hill_loc, 1, leader_range)
             logging.debug('leader_loc = %s' % str(leader_loc))
-            logging.debug('ants.time_remaining() = ' + str(ants.time_remaining()))
             # mobilizing militia
             if leader_loc is not None:
                 ants.move_to_spot(leader_loc, max_malitia, 100)
@@ -83,7 +75,7 @@ class MyBot:
         # loop through all my un-moved ants and set them to explore
         # the ant_loc is an ant location tuple in (row, col) form
         for ant_loc in ants.my_unmoved_ants():
-            logging.debug('issue_explore_task for %s' % str(ant_loc))
+            #logging.debug('issue_explore_task for %s' % str(ant_loc))
             min_val = sys.maxsize
             best_directions = []
             for cur_direction in ants.passable_directions(ant_loc):
@@ -107,7 +99,6 @@ class MyBot:
                 ants.issue_order((ant_loc, choice(best_directions)))
             
             # check if we still have time left to calculate more orders
-            logging.debug('ants.time_remaining() = ' + str(ants.time_remaining()))    
             if ants.time_remaining() < 10:
                 break
                 

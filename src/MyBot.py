@@ -1,6 +1,14 @@
-#!/usr/bin/env python
-from ants import *
+# MyBot.py: main program, required by contest
+#
+# AI bot written for AI Challenge 2011 - Ants
+# Author: Bill
+# License: all your base are belong to us
+
+from core import *
+from gamestate import GameState
+from combat import battle_line as battle
 from random import choice
+import sys
 
 # define a class with a do_turn method
 # the Ants.run method will parse and update bot input
@@ -43,13 +51,13 @@ class MyBot:
     def issue_combat_task(self, ants):
         'combat logic'
         logging.debug('issue_combat_task.start = %s' % str(ants.time_remaining())) 
-        zones = ants.get_combat_zones_3()
+        zones = battle.get_combat_zones(ants)
         
         logging.debug('zones = %s' % str(zones))
         for zone in zones:
             logging.debug('group combat loop for = %s' % str(zone))
             if len(zone[0]) > 0:
-                ants.do_zone_combat_3(zone)
+                battle.do_zone_combat(ants, zone)
             
             # check if we still have time left to calculate more orders
             if ants.time_remaining() < 100:
@@ -115,6 +123,6 @@ if __name__ == '__main__':
         # if run is passed a class with a do_turn method, it will do the work
         # this is not needed, in which case you will need to write your own
         # parsing function and your own game state class
-        Ants.run(MyBot())
+        GameState.run(MyBot())
     except KeyboardInterrupt:
         print('ctrl-c, leaving ...')

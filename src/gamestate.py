@@ -1,7 +1,7 @@
 # gamestate.py: stuff related to game state management, including I/O with game engine
 #
 # AI bot written for AI Challenge 2011 - Ants
-# Author: Bill
+# Author: Bill Y
 # License: all your base are belong to us
 
 import sys
@@ -213,6 +213,10 @@ class GameState():
         row, col = loc
         return self.map[row][col] in (LAND, DEAD)
 
+    def is_my_unmoved_ant(self, loc):
+        'true if is my ant, and is not moved'
+        return loc in self.ant_list and self.ant_list[loc][0] == MY_ANT and self.ant_list[loc][1] == False
+    
     def is_passable(self, loc):
         'true if not water or ant or food'
         row, col = loc

@@ -1,7 +1,7 @@
 # battle_line.py: combat algorithm utilizing a line-of-battle strategy
 #
 # AI bot written for AI Challenge 2011 - Ants
-# Author: Bill
+# Author: Bill Y
 # License: all your base are belong to us
 
 from core import *
@@ -32,17 +32,23 @@ def get_combat_zones(gamestate):
     enemy_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 3)
     enemy_ants = [ant_loc for ant_loc, owner in gamestate.enemy_ants()]
     open_fighters = path.bfs(gamestate, enemy_ants, enemy_distance, 
-        lambda loc : gamestate.map[loc[0]][loc[1]] == MY_ANT and gamestate.ant_list[loc][1] == False)
-        
+        lambda loc : gamestate.is_my_unmoved_ant(loc))
+    open_supporters = path.bfs(gamestate, open_fighters, group_distance, 
+        lambda loc : gamestate.is_my_unmoved_ant(loc) and loc not in open_fighters)
+    all_my_ants = [ant for ant in gamestate.my_ants() if ant not in open_fighters]
+
     fighter_groups = []
     while len(open_fighters) > 0:
         first_ant = open_fighters.pop()
         group = [first_ant]
         group_i = 0
         while len(group) > group_i:
-            friends = [ant for ant in open_fighters if gamestate.euclidean_distance2(group[group_i], ant) < group_distance]
-            group.extend(friends)
-            open_fighters = [ant for ant in open_fighters if ant not in friends]
+            fighter_friends = [ant for ant in open_fighters if gamestate.euclidean_distance2(group[group_i], ant) < group_distance]
+            supporter_friends = [ant for ant in open_supporters if gamestate.euclidean_distance2(group[group_i], ant) < group_distance]
+            group.extend(fighter_friends)
+            group.extend(supporter_friends)
+            open_fighters = [ant for ant in open_fighters if ant not in fighter_friends]
+            open_supporters = [ant for ant in open_supporters if ant not in supporter_friends]
             group_i += 1
         
         group_enemy = path.bfs(gamestate, group, enemy_distance, lambda loc : loc in enemy_ants)
@@ -56,9 +62,10 @@ def eval_formation(gamestate, my_formation, enemy_formation):
     all_pairs = [(m, e) for m in my_formation for e in enemy_formation]
     # find the min_distance between our ants
     all_distances = [gamestate.euclidean_distance2(m,e) for m in my_formation for e in enemy_formation]
-    min_distance = gamestate.euclidean_distance_add(min(all_distances), 0.5)
+    min_distance = min(all_distances)
+    min_distance_fuz = gamestate.euclidean_distance_add(min_distance, 0.5)
     # find out fighting pairs by getting all_pairs that has min_distance
-    fighting_pairs = [all_pairs[i] for i,x in enumerate(all_distances) if x <= min_distance]
+    fighting_pairs = [all_pairs[i] for i,x in enumerate(all_distances) if x <= min_distance_fuz]
     # create set (this ensures uniqueness)
     my_fighters = {}
     enemy_fighters = {}

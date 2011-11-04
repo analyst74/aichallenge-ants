@@ -1,7 +1,7 @@
 # path.py: pathfinding algorithms
 #
 # AI bot written for AI Challenge 2011 - Ants
-# Author: Bill
+# Author: Bill Y
 # License: all your base are belong to us
 
 from core import *

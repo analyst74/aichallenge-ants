@@ -1,7 +1,7 @@
 # core.py: core functions, definitions and such
 #
 # AI bot written for AI Challenge 2011 - Ants
-# Author: Bill
+# Author: Bill Y
 # License: all your base are belong to us
 
 from collections import defaultdict, deque

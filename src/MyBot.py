@@ -9,8 +9,7 @@ from gamestate import GameState
 from combat import battle_line as battle
 from random import choice
 
-import sys
-import pickle
+import sys, os, pickle
 
 # define a class with a do_turn method
 # the Ants.run method will parse and update bot input
@@ -33,9 +32,10 @@ class MyBot:
     # it also has several helper methods to use
     def do_turn(self, ants):
         logging.debug('turn ' + str(ants.current_turn))
-        pickle_file = open('pickle/turn_' + str(ants.current_turn) + '.gamestate', 'wb')
-        pickle.dump(ants, pickle_file)
-        pickle_file.close()
+        if os.path.isdir('pickle'):
+            pickle_file = open('pickle/turn_' + str(ants.current_turn) + '.gamestate', 'wb')
+            pickle.dump(ants, pickle_file)
+            pickle_file.close()
         # if a hill is really close, do it first before all other task
         self.issue_raze_task(ants, 5)
         self.issue_gather_task(ants)

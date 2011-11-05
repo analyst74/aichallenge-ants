@@ -5,7 +5,6 @@
 # License: all your base are belong to us
 
 import sys
-import traceback
 import random
 import time
 from core import *
@@ -22,7 +21,6 @@ class GameState():
         self.cols = None
         self.rows = None
         self.map = None
-        self.beaten_path = None
         self.hill_list = {}
         self.ant_list = {}
         self.dead_list = defaultdict(list)
@@ -67,8 +65,6 @@ class GameState():
                     self.turns = int(tokens[1])
         self.map = [[LAND for col in range(self.cols)]
                     for row in range(self.rows)]
-        self.beaten_path = [[0 for col in range(self.cols)]
-                            for row in range(self.rows)]
                             
     def update(self, data):
         'parse engine input and update the game state'
@@ -80,17 +76,10 @@ class GameState():
         # reset vision
         self.vision = None
         
-        # reduce beaten path
-        self.beaten_path = [[int(max(0, x-max(x/10,1))) for x in y] for y in self.beaten_path]
-        
         # hill is slightly different, we do want to remember 
         # where hills are, so we know where to attack
-        hills_to_remove = []
-        for row, col in self.hill_list.keys():
-            if self.map[row][col] != HILL:
-                hills_to_remove.append((row,col))
-        for loc in hills_to_remove:
-            del self.hill_list[loc]
+        self.hill_list = {(row, col):self.hill_list[(row, col)] for (row, col) in self.hill_list 
+                        if self.map[row][col] == HILL}
 
         # clear ant and food data
         for row, col in self.ant_list.keys():
@@ -164,12 +153,6 @@ class GameState():
             # update map info (to avoid to ants moving into the same spot)
             self.map[newrow][newcol] = MY_ANT
             self.map[row][col] = LAND
-            # set level of beaten path
-            self.beaten_path[row][col] += 10
-            # increase adjacent ones too
-            for d in self.passable_directions((row, col)):
-                (adj_row, adj_col) = self.destination((row, col), d)
-                self.beaten_path[adj_row][adj_col] += 5
     
     def finish_turn(self):
         'finish the turn by writing the go line'
@@ -386,35 +369,3 @@ class GameState():
         for row in self.map:
             tmp += '# %s\n' % ''.join([MAP_RENDER[col] for col in row])
         return tmp
-
-    # static methods are not tied to a class and don't have self passed in
-    # this is a python decorator
-    @staticmethod
-    def run(bot):
-        'parse input, update game state and call the bot classes do_turn method'
-        ants = GameState()
-        map_data = ''
-        while(True):
-            try:
-                current_line = sys.stdin.readline().rstrip('\r\n') # string new line char
-                if current_line.lower() == 'ready':
-                    ants.setup(map_data)
-                    bot.do_setup(ants)
-                    ants.finish_turn()
-                    map_data = ''
-                elif current_line.lower() == 'go':
-                    ants.update(map_data)
-                    # call the do_turn method of the class passed in
-                    bot.do_turn(ants)
-                    ants.finish_turn()
-                    map_data = ''
-                else:
-                    map_data += current_line + '\n'
-            except EOFError:
-                break
-            except KeyboardInterrupt:
-                raise
-            except:
-                # don't raise error or return so that bot attempts to stay alive
-                traceback.print_exc(file=sys.stderr)
-                sys.stderr.flush()

@@ -7,7 +7,7 @@
 import pickle
 import unittest
 import os, sys
-cmd_folder = os.path.dirname(os.path.abspath('../combat'))
+cmd_folder = os.path.dirname(os.path.abspath('.'))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
 from combat import battle_line

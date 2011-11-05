@@ -38,3 +38,5 @@ BEHIND = {'n': 's',
           'w': 'e'}
 
 ALL_DIRECTIONS = ['n', 'e', 's', 'w']
+
+STRAT_DECAY = 0.9

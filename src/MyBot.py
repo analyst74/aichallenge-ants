@@ -6,115 +6,124 @@
 
 from core import *
 from gamestate import GameState
+from influence import Influence
+from planner import Planner
 from combat import battle_line as battle
 from random import choice
+import traceback
 
 import sys, os, pickle
 
 # define a class with a do_turn method
-# the Ants.run method will parse and update bot input
+# the Gamestate.run method will parse and update bot input
 # it will also run the do_turn method for us
 class MyBot:
-    def __init__(self):
+    def __init__(self, gamestate):
         # define class level variables, will be remembered between turns
-        pass
+        self.gamestate = gamestate
     
     # do_setup is run once at the start of the game
     # after the bot has received the game settings
-    # the ants class is created and setup by the Ants.run method
-    def do_setup(self, ants):
+    def do_setup(self):
         # initialize data structures after learning the game settings
-        logging.debug('ants.euclidean_distance_add(ants.attackradius2, 2) = %s' % str(ants.euclidean_distance_add(ants.attackradius2, 2)))
-        pass
+        self.strat_influence = Influence(self.gamestate, STRAT_DECAY)
+        self.planner = Planner(self.gamestate, self.strat_influence)
     
     # do turn is run once per turn
-    # the ants class has the game state and is updated by the Ants.run method
-    # it also has several helper methods to use
-    def do_turn(self, ants):
-        logging.debug('turn ' + str(ants.current_turn))
+    def do_turn(self):
+        logging.debug('turn ' + str(self.gamestate.current_turn))
         if os.path.isdir('pickle'):
-            pickle_file = open('pickle/turn_' + str(ants.current_turn) + '.gamestate', 'wb')
-            pickle.dump(ants, pickle_file)
+            # dump gamestate
+            pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
+            pickle.dump(self.gamestate, pickle_file)
             pickle_file.close()
-        # if a hill is really close, do it first before all other task
-        self.issue_raze_task(ants, 5)
-        self.issue_gather_task(ants)
-        #logging.debug('after gather task: self.ant_list = %s' % str(ants.ant_list))
-        self.issue_combat_task(ants)
-        self.issue_raze_task(ants, 300)
-        self.issue_explore_task(ants)
-        logging.debug('endturn: ant_count = %d, time_elapsed = %s' % (len(ants.ant_list), ants.time_elapsed()))
-
-    def issue_gather_task(self, ants):
-        'gather food'
-        # optimize food search in earlier rounds
-        marginal_limit = max(1, len(ants.food_list))
-        search_limit = max(20, int(200 / marginal_limit))
-        for food_loc in ants.food_list:            
-            ants.move_to_spot(food_loc, 1, search_limit)
+            
+            # dump influence map value
+            pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.influence', 'wb')
+            pickle.dump(self.strat_influence, pickle_file)
+            pickle_file.close()
         
-    def issue_combat_task(self, ants):
+        # decay strategy influence
+        self.strat_influence.decay()
+        # use planner to set new influence
+        self.planner.do_plan()
+        
+        # diffuse strategy influence       
+        for i in xrange(5):
+            self.strat_influence.diffuse()
+        # handle combat
+        self.issue_combat_task()
+        # handle explorer
+        self.issue_explore_task()
+        logging.debug('endturn: ant_count = %d, time_elapsed = %s' % (len(self.gamestate.ant_list), self.gamestate.time_elapsed()))
+
+    def issue_combat_task(self):
         'combat logic'
-        logging.debug('issue_combat_task.start = %s' % str(ants.time_remaining())) 
-        zones = battle.get_combat_zones(ants)
+        logging.debug('issue_combat_task.start = %s' % str(self.gamestate.time_remaining())) 
+        zones = battle.get_combat_zones(self.gamestate)
         
         logging.debug('zones = %s' % str(zones))
         for zone in zones:
             logging.debug('group combat loop for = %s' % str(zone))
             if len(zone[0]) > 0:
-                battle.do_zone_combat(ants, zone)
+                battle.do_zone_combat(self.gamestate, zone)
             
             # check if we still have time left to calculate more orders
-            if ants.time_remaining() < 100:
+            if self.gamestate.time_remaining() < 100:
                 break
                 
-        logging.debug('issue_combat_task.finish = ' + str(ants.time_remaining())) 
+        logging.debug('issue_combat_task.finish = ' + str(self.gamestate.time_remaining())) 
         
-    def issue_raze_task(self, ants, leader_range):
-        'raze enemy hill'
-        # send 20% of total ants to attack
-        logging.debug('raze.start = ' + str(ants.time_remaining())) 
-        max_malitia = len(ants.ant_list) // 5
-        for hill_loc, owner in ants.enemy_hills():
-            logging.debug('issue_raze_task for %s' % str(hill_loc))
-            leader_loc = ants.move_to_spot(hill_loc, 1, leader_range)
-            logging.debug('leader_loc = %s' % str(leader_loc))
-            # mobilizing militia
-            if leader_loc is not None:
-                ants.move_to_spot(leader_loc, max_malitia, 100)
-        logging.debug('raze.finish = ' + str(ants.time_remaining())) 
-        
-    def issue_explore_task(self, ants):
+    def issue_explore_task(self):
         'explore map'
         # loop through all my un-moved ants and set them to explore
         # the ant_loc is an ant location tuple in (row, col) form
-        for ant_loc in ants.my_unmoved_ants():
-            #logging.debug('issue_explore_task for %s' % str(ant_loc))
-            min_val = sys.maxsize
-            best_directions = []
-            for cur_direction in ants.passable_directions(ant_loc):
-                # 2 levels, so the ant can "see" further
-                (row,col) = ants.destination(ants.destination(ant_loc, cur_direction), cur_direction)
-                # calculate new_locs plus its surrounding location score
-                cur_val = ants.beaten_path[row][col]
-                new_directions = ants.passable_directions((row,col))
-                for (adj_row, adj_col) in [ants.destination((row,col), d) for d in new_directions]:
-                    cur_val += ants.beaten_path[adj_row][adj_col]
-                # then normalize it
-                cur_val = cur_val / (len(new_directions) + 1)
-                
-                if min_val > cur_val:
-                    min_val = cur_val
-                    best_new_loc = (row, col)
-                    best_directions = [cur_direction]
-                elif min_val == cur_val:
-                    best_directions.append(cur_direction)
+        for cur_loc in self.gamestate.my_unmoved_ants():
+            all_locs = [cur_loc] + [self.gamestate.destination(cur_loc, d) 
+                                    for d in self.gamestate.passable_directions(cur_loc)]
+            loc_influences = [self.strat_influence.map[loc] for loc in all_locs]
+            logging.debug('explorer check for %s, influences are %s' % (str(all_locs), str(loc_influences)))
+            best_directions = self.gamestate.direction(cur_loc, all_locs[loc_influences.index(min(loc_influences))])
             if len(best_directions) > 0:
-                ants.issue_order((ant_loc, choice(best_directions)))
+                self.gamestate.issue_order((cur_loc, choice(best_directions)))
             
             # check if we still have time left to calculate more orders
-            if ants.time_remaining() < 10:
+            if self.gamestate.time_remaining() < 10:
                 break
+
+
+    # static methods are not tied to a class and don't have self passed in
+    # this is a python decorator
+    @staticmethod
+    def run():
+        'parse input, update game state and call the bot classes do_turn method'
+        gamestate = GameState()
+        bot = MyBot(gamestate)
+        map_data = ''
+        while(True):
+            try:
+                current_line = sys.stdin.readline().rstrip('\r\n') # string new line char
+                if current_line.lower() == 'ready':
+                    gamestate.setup(map_data)
+                    bot.do_setup()
+                    gamestate.finish_turn()
+                    map_data = ''
+                elif current_line.lower() == 'go':
+                    gamestate.update(map_data)
+                    # call the do_turn method of the class passed in
+                    bot.do_turn()
+                    gamestate.finish_turn()
+                    map_data = ''
+                else:
+                    map_data += current_line + '\n'
+            except EOFError:
+                break
+            except KeyboardInterrupt:
+                raise
+            except:
+                # don't raise error or return so that bot attempts to stay alive
+                traceback.print_exc(file=sys.stderr)
+                sys.stderr.flush()
                 
 if __name__ == '__main__':
     # psyco will speed up python a little, but is not needed
@@ -128,6 +137,6 @@ if __name__ == '__main__':
         # if run is passed a class with a do_turn method, it will do the work
         # this is not needed, in which case you will need to write your own
         # parsing function and your own game state class
-        GameState.run(MyBot())
+        MyBot.run()
     except KeyboardInterrupt:
         print('ctrl-c, leaving ...')

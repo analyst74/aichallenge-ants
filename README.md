@@ -25,7 +25,7 @@ Code Structure:
 /src/path.py        - pathfinding algorithms
 /src/gamestate.py   - stuff related to game state management, including I/O with game engine
 /src/planner.py     - strategic planner
-/src/map.py         - influence mapping implementation
+/src/influence.py   - influence mapping implementation
 
 # following modules are created as need arises
 /src/combat/        - combat modules, keep past working combat modules for comparison with newer ones

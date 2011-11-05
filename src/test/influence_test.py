@@ -74,8 +74,6 @@ class TestInfluence(unittest.TestCase):
         self.assertEqual(inf.map[(23,18)], 7.5)
         self.assertEqual(inf.map[(23,19)], 1.25)
         self.assertEqual(inf.map[(24,18)], 1.25)
-        inf.diffuse()
-        inf.diffuse()
         # print([(key, inf.map[key]) for key in inf.map if inf.map[key] != 0])
         # map_data = [[0 for col in range(inf.gamestate.cols)]
                     # for row in range(inf.gamestate.rows)]                    
@@ -83,20 +81,21 @@ class TestInfluence(unittest.TestCase):
             # map_data[row][col] = inf.map[(row, col)]
         # for row in map_data:
             # print ','.join("%.2f" % f for f in row)
-            
+    
     def test_multi_diffuse_1(self):
         pickle_file = open('test_data/influence_test/turn_1.gamestate', 'r')
         gamestate = pickle.load(pickle_file)
         pickle_file.close()
         inf = Influence(gamestate, 0.9)
         
-        for food_loc in gamestate.food_list:
-            inf.map[food_loc] += -5
-        for ant_loc in gamestate.my_ants():
-            inf.map[ant_loc] += 2
-            
+        inf.map[(23,18)] = 10
+        inf.map[(25,18)] = -10
         inf.diffuse()
-        inf.diffuse()
+        self.assertEqual(inf.map[(23,18)], 7.5)
+        self.assertEqual(inf.map[(25,18)], -5)
+        self.assertEqual(inf.map[(24,18)], 0)
+        self.assertEqual(inf.map[(23,19)], 1.25)
+        self.assertEqual(inf.map[(25,19)], -1.25)
         
         # print([(key, inf.map[key]) for key in inf.map if inf.map[key] != 0])
         # map_data = [[0 for col in range(inf.gamestate.cols)]
@@ -105,7 +104,7 @@ class TestInfluence(unittest.TestCase):
             # map_data[row][col] = inf.map[(row, col)]
         # for row in map_data:
             # print(row)
-        
-        
+
+
 if __name__ == '__main__':
     unittest.main()

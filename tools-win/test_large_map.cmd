@@ -1,0 +1,2 @@
+@echo off
+python "%~dp0playgame.py" --engine_seed 42 --player_seed 42 --food Random --end_wait=0.25 --verbose --log_dir game_logs --turns 1000 --turntime 500 --map_file maps/random_walk/random_walk_10p_02.map "python ..\src\MyBot.py" "python ..\archive\v4\v4.py" --fill -e --strict --capture_errors

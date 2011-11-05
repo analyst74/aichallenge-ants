@@ -17,23 +17,26 @@ class Influence():
     def diffuse(self):
         'diffuse self.map'
         # initiate buffer
-        buffer = {(row, col): 0 for col in xrange(self.gamestate.cols) 
-                for row in xrange(self.gamestate.rows)}
+        #buffer = {(row, col): 0 for col in xrange(self.gamestate.cols) 
+        #        for row in xrange(self.gamestate.rows)}
+        buffer = {}
+        for key in self.map:
+            buffer[key] = self.map[key]
+            
         # for each item in self.map that is not water
-        non_water_locs = [loc for loc in self.map if not self.gamestate.is_water(loc)]
+        non_water_locs = [loc for loc in self.map if loc not in self.gamestate.water_list]
         # find surrounding non-water nodes and diffuse to them
         for cur_loc in non_water_locs:
-            neighbours = [loc for loc in self.gamestate.get_neighbour_locs(cur_loc) 
-                        if not self.gamestate.is_water(loc)]
+            neighbours = [loc for loc in self.gamestate.neighbour_table[cur_loc]
+                        if loc not in self.gamestate.water_list]
             neighbour_val = self.map[cur_loc] / 8.0
             cur_val = -neighbour_val * len(neighbours)
             # add node/value to buffer
             buffer[cur_loc] += cur_val
             for n_loc in neighbours:
                 buffer[n_loc] += neighbour_val
-        # merge buffer to map
-        for key in buffer:
-            self.map[key] += buffer[key]
+        # copy buffer to map
+        self.map = buffer
         
     def decay(self):
         'decay self.map'

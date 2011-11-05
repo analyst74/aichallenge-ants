@@ -30,7 +30,6 @@ class Planner():
         # TODO: distinguish between my fighters and explorers
         for ant_loc in self.gamestate.my_ants():
             self.strat_influence.map[ant_loc] = self.my_explorer_value
-            logging.debug('update_influence my_ants %s = %s' % (str(ant_loc), str(self.strat_influence.map[ant_loc])))
         for ant_loc, owner in self.gamestate.enemy_ants():
             self.strat_influence.map[ant_loc] = self.enemy_ant_value
         

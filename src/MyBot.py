@@ -14,6 +14,8 @@ import traceback
 
 import sys, os, pickle
 
+DETAIL_LOG = False
+
 # define a class with a do_turn method
 # the Gamestate.run method will parse and update bot input
 # it will also run the do_turn method for us
@@ -32,7 +34,7 @@ class MyBot:
     # do turn is run once per turn
     def do_turn(self):
         logging.debug('turn ' + str(self.gamestate.current_turn))
-        if os.path.isdir('pickle'):
+        if DETAIL_LOG and os.path.isdir('pickle'):
             # dump gamestate
             pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
             pickle.dump(self.gamestate, pickle_file)
@@ -44,13 +46,21 @@ class MyBot:
             pickle_file.close()
         
         # decay strategy influence
+        logging.debug('strat_influence.decay().start = %s' % str(self.gamestate.time_remaining())) 
         self.strat_influence.decay()
+        logging.debug('strat_influence.decay().finish = %s' % str(self.gamestate.time_remaining())) 
         # use planner to set new influence
         self.planner.do_plan()
         
-        # diffuse strategy influence       
+        # diffuse strategy influence
+        logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining())) 
         for i in xrange(5):
             self.strat_influence.diffuse()
+            if self.gamestate.time_remaining() < 300:
+                logging.debug('stopped diffuse after %d times' % i)
+                break
+        logging.debug('strat_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 
+            
         # handle combat
         self.issue_combat_task()
         # handle explorer
@@ -76,13 +86,13 @@ class MyBot:
         
     def issue_explore_task(self):
         'explore map'
+        logging.debug('issue_explore_task.start = %s' % str(self.gamestate.time_remaining())) 
         # loop through all my un-moved ants and set them to explore
         # the ant_loc is an ant location tuple in (row, col) form
         for cur_loc in self.gamestate.my_unmoved_ants():
             all_locs = [cur_loc] + [self.gamestate.destination(cur_loc, d) 
                                     for d in self.gamestate.passable_directions(cur_loc)]
             loc_influences = [self.strat_influence.map[loc] for loc in all_locs]
-            logging.debug('explorer check for %s, influences are %s' % (str(all_locs), str(loc_influences)))
             best_directions = self.gamestate.direction(cur_loc, all_locs[loc_influences.index(min(loc_influences))])
             if len(best_directions) > 0:
                 self.gamestate.issue_order((cur_loc, choice(best_directions)))
@@ -90,6 +100,7 @@ class MyBot:
             # check if we still have time left to calculate more orders
             if self.gamestate.time_remaining() < 10:
                 break
+        logging.debug('issue_explore_task.finish = ' + str(self.gamestate.time_remaining())) 
 
 
     # static methods are not tied to a class and don't have self passed in

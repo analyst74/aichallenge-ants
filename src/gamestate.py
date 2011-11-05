@@ -23,6 +23,7 @@ class GameState():
         self.map = None
         self.hill_list = {}
         self.ant_list = {}
+        self.water_list = {}
         self.dead_list = defaultdict(list)
         self.food_list = []
         self.turntime = 0
@@ -35,6 +36,7 @@ class GameState():
         self.turns = 0
         self.current_turn = 0
         self.sqrt_table = {}
+        self.neighbour_table = {}
         # formation permutation counter, to be removed after profiling
         self.counter = 0
 
@@ -65,6 +67,11 @@ class GameState():
                     self.turns = int(tokens[1])
         self.map = [[LAND for col in range(self.cols)]
                     for row in range(self.rows)]
+                    
+        # setup neighbour table
+        self.neighbour_table = {(row,col):self.get_neighbour_locs((row,col)) 
+                                for row in xrange(self.rows) 
+                                for col in xrange(self.cols)}
                             
     def update(self, data):
         'parse engine input and update the game state'
@@ -107,6 +114,7 @@ class GameState():
                     col = int(tokens[2])
                     if tokens[0] == 'w':
                         self.map[row][col] = WATER
+                        self.water_list[(row, col)] = 1
                     elif tokens[0] == 'f':
                         self.map[row][col] = FOOD
                         self.food_list.append((row, col))
@@ -139,14 +147,14 @@ class GameState():
         #early exit
         if direction is None:
             self.ant_list[(row,col)] = (MY_ANT, True)
-            logging.debug('moving %s -- stationary' % str((row, col)))
+            #logging.debug('moving %s -- stationary' % str((row, col)))
             return
         
         (newrow, newcol) = self.destination((row, col), direction)
         if self.is_passable((newrow, newcol)):
             sys.stdout.write('o %s %s %s\n' % (row, col, direction))
             sys.stdout.flush()
-            logging.debug('moving %s to %s' % (str((row, col)), str((newrow, newcol))))
+            #logging.debug('moving %s to %s' % (str((row, col)), str((newrow, newcol))))
             # update ant moved flag
             del self.ant_list[(row,col)]
             self.ant_list[(newrow, newcol)] = (MY_ANT, True)
@@ -219,7 +227,7 @@ class GameState():
         'calculate a new location given the direction and wrap correctly'
         row, col = loc
         d_row, d_col = AIM[direction]
-        return ((row + d_row) % self.rows, (col + d_col) % self.cols)        
+        return ((row + d_row) % self.rows, (col + d_col) % self.cols)
 
     def manhattan_distance(self, loc1, loc2):
         'calculate the manhattan distance between to locations'

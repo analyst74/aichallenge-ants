@@ -30,10 +30,8 @@ def bfs(gamestate, start_locs, range_limit, func_condition):
             # if w is not marked
             if not w in marked_dict:
                 # w must not be water and 
-                (w_row, w_col) = w  
                 distance = min([gamestate.euclidean_distance2(loc, w) for loc in start_locs])
-                if (gamestate.map[w_row][w_col] != WATER and 
-                    distance <= range_limit) :
+                if (w not in gamestate.water_list and distance <= range_limit) :
                     # mark w
                     marked_dict[w] = v
                     # enqueue w onto Q

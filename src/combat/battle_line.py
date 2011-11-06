@@ -36,6 +36,9 @@ def get_combat_zones(gamestate):
     open_supporters = path.bfs(gamestate, open_fighters, group_distance, 
         lambda loc : gamestate.is_my_unmoved_ant(loc) and loc not in open_fighters)
     all_my_ants = [ant for ant in gamestate.my_ants() if ant not in open_fighters]
+    
+    # set open fighters to gamestate
+    gamestate.my_fighters = open_fighters
 
     fighter_groups = []
     while len(open_fighters) > 0:

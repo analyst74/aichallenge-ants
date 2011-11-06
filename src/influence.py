@@ -5,7 +5,7 @@
 # License: all your base are belong to us
 
 from core import WATER
-import math
+import math, path
 
 class Influence():
     def __init__(self, gamestate, decay_multiplier):
@@ -37,6 +37,14 @@ class Influence():
                 buffer[n_loc] += neighbour_val
         # copy buffer to map
         self.map = buffer
+    
+    def set_value(self, loc, range, value):
+        'set value on given loc, with its influence reaching up to range'
+        # a simple/different model for diffusion is used
+        self.map[loc] = value
+        all_neighbours = path.bfs(self.gamestate, [loc], range**2, lambda x : True)
+        for n_loc in all_neighbours:
+            self.map[n_loc] = value / self.gamestate.manhattan_distance(loc, n_loc)
         
     def decay(self):
         'decay self.map'

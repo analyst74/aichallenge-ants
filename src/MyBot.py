@@ -23,6 +23,7 @@ class MyBot:
     def __init__(self, gamestate):
         # define class level variables, will be remembered between turns
         self.gamestate = gamestate
+        self.planner_time = gamestate.turntime / 2
     
     # do_setup is run once at the start of the game
     # after the bot has received the game settings
@@ -31,9 +32,7 @@ class MyBot:
         self.strat_influence = Influence(self.gamestate, STRAT_DECAY)
         self.planner = Planner(self.gamestate, self.strat_influence)
     
-    # do turn is run once per turn
-    def do_turn(self):
-        logging.debug('turn ' + str(self.gamestate.current_turn))
+    def log_turn(self, turn_no):
         if DETAIL_LOG and os.path.isdir('pickle'):
             # dump gamestate
             pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
@@ -44,25 +43,36 @@ class MyBot:
             pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.influence', 'wb')
             pickle.dump(self.strat_influence, pickle_file)
             pickle_file.close()
+    
+    # do turn is run once per turn
+    def do_turn(self):
+        logging.debug('turn ' + str(self.gamestate.current_turn))
         
+        # detailed logging
+        self.log_turn(self.gamestate.current_turn)
+        
+        # handle combat
+        self.issue_combat_task()
+        
+        plan_start = self.gamestate.time_remaining()
         # decay strategy influence
         logging.debug('strat_influence.decay().start = %s' % str(self.gamestate.time_remaining())) 
         self.strat_influence.decay()
         logging.debug('strat_influence.decay().finish = %s' % str(self.gamestate.time_remaining())) 
         # use planner to set new influence
         self.planner.do_plan()
+        plan_duration = plan_start - self.gamestate.time_remaining()
+        self.planner_time = max([plan_duration, self.planner_time])
         
         # diffuse strategy influence
         logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining())) 
-        for i in xrange(5):
+        for i in xrange(3):
             self.strat_influence.diffuse()
-            if self.gamestate.time_remaining() < 300:
+            if self.gamestate.time_remaining() < 50:
                 logging.debug('stopped diffuse after %d times' % i)
                 break
         logging.debug('strat_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 
-            
-        # handle combat
-        self.issue_combat_task()
+
         # handle explorer
         self.issue_explore_task()
         logging.debug('endturn: ant_count = %d, time_elapsed = %s' % (len(self.gamestate.ant_list), self.gamestate.time_elapsed()))
@@ -79,7 +89,7 @@ class MyBot:
                 battle.do_zone_combat(self.gamestate, zone)
             
             # check if we still have time left to calculate more orders
-            if self.gamestate.time_remaining() < 100:
+            if self.gamestate.time_remaining() < self.planner_time + 50:
                 break
                 
         logging.debug('issue_combat_task.finish = ' + str(self.gamestate.time_remaining())) 

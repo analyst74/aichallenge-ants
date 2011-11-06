@@ -23,6 +23,7 @@ class GameState():
         self.map = None
         self.hill_list = {}
         self.ant_list = {}
+        self.my_fighters = []
         self.water_list = {}
         self.dead_list = defaultdict(list)
         self.food_list = []

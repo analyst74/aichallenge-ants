@@ -9,7 +9,7 @@ if cmd_folder not in sys.path:
 
 turn = sys.argv[1]
     
-pickle_file = open('../pickle/turn_' + turn + '.influence', 'r')
+pickle_file = open('profiler_inf' + turn + '.influence', 'r')
 inf = pickle.load(pickle_file)
 pickle_file.close()
 map_data = [[0 for col in range(inf.gamestate.cols)]
@@ -27,7 +27,7 @@ cmap2 = mpl.colors.LinearSegmentedColormap.from_list('my_colormap',
 zvals = np.random.rand(100,100)*10-5
 #print(zvals)
 img2 = pyplot.imshow(map_data,interpolation='nearest',
-                    vmin=-1, vmax=1,
+                    vmin=-2, vmax=2,
                     cmap = cmap2,
                     origin='upper')
 

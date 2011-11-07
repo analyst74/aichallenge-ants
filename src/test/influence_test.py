@@ -11,7 +11,7 @@ cmd_folder = os.path.dirname(os.path.abspath('.'))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
 
-from influence import Influence
+from influence3 import Influence
 
 class TestInfluence(unittest.TestCase):   
 

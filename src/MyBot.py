@@ -6,13 +6,13 @@
 
 from core import *
 from gamestate import GameState
-from influence import Influence
+from influence3 import Influence
 from planner import Planner
-from combat import battle_line as battle
+from combat import battle_line2 as battle
 from random import choice
-import traceback
+from collections import deque
 
-import sys, os, pickle
+import sys, os, pickle, traceback, math
 
 DETAIL_LOG = False
 
@@ -23,7 +23,9 @@ class MyBot:
     def __init__(self, gamestate):
         # define class level variables, will be remembered between turns
         self.gamestate = gamestate
-        self.planner_time = gamestate.turntime / 2
+        self.diffuse_time = 0
+        self.combat_time_history = deque([0, 0, 0, 0, 0])
+        self.combat_time = 0
     
     # do_setup is run once at the start of the game
     # after the bot has received the game settings
@@ -33,6 +35,13 @@ class MyBot:
         self.planner = Planner(self.gamestate, self.strat_influence)
     
     def log_turn(self, turn_no):
+        logging.debug('turn ' + str(self.gamestate.current_turn))
+        logging.debug('self.diffuse_time = %d' % self.diffuse_time)
+        logging.debug('self.combat_time_history = %s' % str(self.combat_time_history))
+        logging.debug('self.combat_time = %s' % self.combat_time)
+        logging.debug('self.strat_influence.map over 0.01 count: %d' % 
+            len([key for key in self.strat_influence.map if math.fabs(self.strat_influence.map[key]) > 0.01]))
+        
         if DETAIL_LOG and os.path.isdir('pickle'):
             # dump gamestate
             pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
@@ -45,33 +54,35 @@ class MyBot:
             pickle_file.close()
     
     # do turn is run once per turn
-    def do_turn(self):
-        logging.debug('turn ' + str(self.gamestate.current_turn))
-        
+    def do_turn(self):        
         # detailed logging
         self.log_turn(self.gamestate.current_turn)
         
-        # handle combat
-        self.issue_combat_task()
-        
-        plan_start = self.gamestate.time_remaining()
         # decay strategy influence
-        logging.debug('strat_influence.decay().start = %s' % str(self.gamestate.time_remaining())) 
+        #logging.debug('strat_influence.decay().start = %s' % str(self.gamestate.time_remaining())) 
         self.strat_influence.decay()
-        logging.debug('strat_influence.decay().finish = %s' % str(self.gamestate.time_remaining())) 
+        #logging.debug('strat_influence.decay().finish = %s' % str(self.gamestate.time_remaining())) 
         # use planner to set new influence
         self.planner.do_plan()
-        plan_duration = plan_start - self.gamestate.time_remaining()
-        self.planner_time = max([plan_duration, self.planner_time])
         
         # diffuse strategy influence
         logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining())) 
         for i in xrange(3):
+            diffuse_start = self.gamestate.time_remaining()
             self.strat_influence.diffuse()
-            if self.gamestate.time_remaining() < 50:
-                logging.debug('stopped diffuse after %d times' % i)
+            diffuse_duration = diffuse_start - self.gamestate.time_remaining()
+            self.diffuse_time = max([diffuse_duration, self.diffuse_time])
+            if self.gamestate.time_remaining() <  self.combat_time + self.diffuse_time + 50:
+                logging.debug('stopped diffuse after %d times' % (i+1))
                 break
         logging.debug('strat_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 
+        
+        # handle combat
+        combat_start = self.gamestate.time_remaining()
+        self.issue_combat_task()
+        self.combat_time_history.append(combat_start - self.gamestate.time_remaining())
+        self.combat_time_history.popleft()
+        self.combat_time = max(self.combat_time_history)
 
         # handle explorer
         self.issue_explore_task()
@@ -81,16 +92,20 @@ class MyBot:
         'combat logic'
         logging.debug('issue_combat_task.start = %s' % str(self.gamestate.time_remaining())) 
         zones = battle.get_combat_zones(self.gamestate)
+        logging.debug('get_combat_zones.finish = %s' % str(self.gamestate.time_remaining())) 
         
-        logging.debug('zones = %s' % str(zones))
-        for zone in zones:
-            logging.debug('group combat loop for = %s' % str(zone))
-            if len(zone[0]) > 0:
-                battle.do_zone_combat(self.gamestate, zone)
-            
-            # check if we still have time left to calculate more orders
-            if self.gamestate.time_remaining() < self.planner_time + 50:
-                break
+        if zones is not None:
+            logging.debug('zones.count = %d' % len(zones))
+            for zone in zones:
+                if len(zone[0]) > 0:
+                    #logging.debug('group combat loop for = %s' % str(zone))
+                    #logging.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
+                    battle.do_zone_combat(self.gamestate, zone)
+                    #logging.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
+                
+                # check if we still have time left to calculate more orders
+                if self.gamestate.time_remaining() < 50:
+                    break
                 
         logging.debug('issue_combat_task.finish = ' + str(self.gamestate.time_remaining())) 
         

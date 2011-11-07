@@ -14,7 +14,7 @@ import traceback
 
 import sys, os, pickle
 
-DETAIL_LOG = True
+DETAIL_LOG = False
 
 # define a class with a do_turn method
 # the Gamestate.run method will parse and update bot input
@@ -68,7 +68,7 @@ class MyBot:
         logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining())) 
         for i in xrange(3):
             self.strat_influence.diffuse()
-            if self.gamestate.time_remaining() < 50:
+            if self.gamestate.time_remaining() < self.planner_time + 50:
                 logging.debug('stopped diffuse after %d times' % i)
                 break
         logging.debug('strat_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 

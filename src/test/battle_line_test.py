@@ -15,15 +15,15 @@ from combat import battle_line
 class TestBattleLineFunctions(unittest.TestCase):   
 
     def setUp(self):
-        pickle_file = open('test_data/battle_line_test/turn_52.gamestate', 'r')
+        pickle_file = open('test_data/battle_line_test/turn_85.gamestate', 'r')
         self.gamestate = pickle.load(pickle_file)
         pickle_file.close()
         
-    def test_get_combat_zones(self):
-        expected_zones = [([(24, 17), (26, 15)], [(20, 15)]), ([(19, 7), (20, 8)], [(14, 6)]), ([(21, 23), (20, 24)], [(16, 22), (17, 21)])]
-        zones = battle_line.get_combat_zones(self.gamestate)
-        
-        self.assertEqual(zones, expected_zones)
+    #def test_get_combat_zones(self):
+    #    expected_zones = battle_line.get_combat_zones(self.gamestate)
+    #    zones = battle_line2.get_combat_zones(self.gamestate)
+
+    #    self.assertEqual(zones, expected_zones)
         
     def test_eval_formation(self):
         """

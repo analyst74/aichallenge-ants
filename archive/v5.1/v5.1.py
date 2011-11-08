@@ -31,8 +31,8 @@ class MyBot:
     # after the bot has received the game settings
     def do_setup(self):
         # initialize data structures after learning the game settings
-        self.strat_influence = Influence(self.gamestate)
-        self.planner = Planner(self.gamestate)
+        self.strat_influence = Influence(self.gamestate, STRAT_DECAY)
+        self.planner = Planner(self.gamestate, self.strat_influence)
     
     def log_turn(self, turn_no):
         logging.debug('turn ' + str(self.gamestate.current_turn))
@@ -42,11 +42,11 @@ class MyBot:
         logging.debug('self.strat_influence.map over 0.01 count: %d' % 
             len([key for key in self.strat_influence.map if math.fabs(self.strat_influence.map[key]) > 0.01]))
         
-        if DETAIL_LOG and os.path.isdir('pickle'):# and int(self.gamestate.current_turn) % 10 == 0:
+        if DETAIL_LOG and os.path.isdir('pickle'):
             # dump gamestate
-            #pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
-            #pickle.dump(self.gamestate, pickle_file)
-            #pickle_file.close()
+            pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
+            pickle.dump(self.gamestate, pickle_file)
+            pickle_file.close()
             
             # dump influence map value
             pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.influence', 'wb')
@@ -60,24 +60,23 @@ class MyBot:
         
         # decay strategy influence
         #logging.debug('strat_influence.decay().start = %s' % str(self.gamestate.time_remaining())) 
-        self.strat_influence.decay(STRAT_DECAY)
+        self.strat_influence.decay()
         #logging.debug('strat_influence.decay().finish = %s' % str(self.gamestate.time_remaining())) 
         # use planner to set new influence
-        logging.debug('self.planner.do_strategy_plan.start = %s' % str(self.gamestate.time_remaining()))
-        self.planner.do_strategy_plan(self.strat_influence)
+        self.planner.do_plan()
         
         # diffuse strategy influence
-        logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))
+        logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining())) 
         for i in xrange(3):
-            if self.gamestate.time_remaining() <  self.combat_time + 50:
-                logging.debug('bailing diffuse after %d times' % (i))
-                break
             diffuse_start = self.gamestate.time_remaining()
-            self.strat_influence.diffuse(cutoff=0.01)
+            self.strat_influence.diffuse()
             diffuse_duration = diffuse_start - self.gamestate.time_remaining()
             self.diffuse_time = max([diffuse_duration, self.diffuse_time])
+            if self.gamestate.time_remaining() <  self.combat_time + self.diffuse_time + 50:
+                logging.debug('stopped diffuse after %d times' % (i+1))
+                break
         logging.debug('strat_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 
-                
+        
         # handle combat
         combat_start = self.gamestate.time_remaining()
         self.issue_combat_task()
@@ -109,7 +108,7 @@ class MyBot:
                     break
                 
         logging.debug('issue_combat_task.finish = ' + str(self.gamestate.time_remaining())) 
-
+        
     def issue_explore_task(self):
         'explore map'
         logging.debug('issue_explore_task.start = %s' % str(self.gamestate.time_remaining())) 
@@ -126,7 +125,8 @@ class MyBot:
             # check if we still have time left to calculate more orders
             if self.gamestate.time_remaining() < 10:
                 break
-        logging.debug('issue_explore_task.finish = ' + str(self.gamestate.time_remaining()))
+        logging.debug('issue_explore_task.finish = ' + str(self.gamestate.time_remaining())) 
+
 
     # static methods are not tied to a class and don't have self passed in
     # this is a python decorator

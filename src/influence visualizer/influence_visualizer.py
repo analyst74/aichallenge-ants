@@ -8,6 +8,10 @@ if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
 
 turn = sys.argv[1]
+if len(sys.argv) == 3:
+    edge = float(sys.argv[2])
+else:
+    edge = 2
     
 pickle_file = open('../pickle/turn_' + turn + '.influence', 'r')
 inf = pickle.load(pickle_file)
@@ -17,17 +21,17 @@ map_data = [[0 for col in range(inf.gamestate.cols)]
 for (row, col) in inf.map:
     map_data[row][col] = inf.map[(row, col)]
 
-print(min(min(map_data)))
+print(min(sum(map_data, [])))
+print(max(sum(map_data, [])))
     
 fig = pyplot.figure(2)
 
 cmap2 = mpl.colors.LinearSegmentedColormap.from_list('my_colormap',
                                            ['blue','black','red'],
                                            256)
-zvals = np.random.rand(100,100)*10-5
-#print(zvals)
+
 img2 = pyplot.imshow(map_data,interpolation='nearest',
-                    #vmin=-2, vmax=2,
+                    vmin=-edge, vmax=edge,
                     cmap = cmap2,
                     origin='upper')
 

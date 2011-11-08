@@ -86,8 +86,8 @@ class GameState():
         
         # hill is slightly different, we do want to remember 
         # where hills are, so we know where to attack
-        self.hill_list = {(row, col):self.hill_list[(row, col)] for (row, col) in self.hill_list 
-                        if self.map[row][col] == HILL}
+        #self.hill_list = {(row, col):self.hill_list[(row, col)] for (row, col) in self.hill_list 
+        #                if self.map[row][col] == HILL}
 
         # clear ant and food data
         for row, col in self.ant_list.keys():
@@ -122,6 +122,9 @@ class GameState():
                     else:
                         owner = int(tokens[3])
                         if tokens[0] == 'a':
+                            # a hill got razed
+                            if (row,col) in self.hill_list and owner != self.hill_list[(row,col)]:
+                                del(self.hill_list[(row,col)])
                             self.map[row][col] = owner
                             self.ant_list[(row, col)] = (owner, False)
                         elif tokens[0] == 'd':
@@ -285,63 +288,6 @@ class GameState():
                 d.append('w')
         return d        
 
-    # TODO: to be decomissioned after proper influence mapping is implemented
-    def move_to_spot(self, loc, max_ant, max_search = 100):
-        'find closet ant that belongs to self to a particular location'
-        # return location of the first ant (after its move)
-        first_ant_loc = None
-        moved_ant_count = 0
-        
-        # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
-        # create a queue Q
-        list_q = deque()
-        # enqueue (source, level) onto Q
-        list_q.append(loc)
-        # mark source
-        marked_dict = { loc: True }
-        
-        search_count = 0
-        while len(list_q) > 0:
-            # limit max search depth and max ant moved
-            if search_count > max_search or moved_ant_count > max_ant:
-                break
-            search_count += 1
-            # dequeue an item from Q into v
-            v = list_q.popleft()
-            # for each edge e incident on v in Graph:
-            for e in ALL_DIRECTIONS:
-                # let w be the other end of e
-                w = self.destination(v, e)
-                # if w is not marked
-                if w not in marked_dict:
-                    # w must not be water
-                    (w_row, w_col) = w
-                    if self.map[w_row][w_col] != WATER:
-                        # mark w
-                        marked_dict[w] = True
-                        # enqueue w onto Q
-                        list_q.append(w)       
-                        # break out if we find our own ant
-                        if w in self.my_ants():
-                            (owner, moved) = self.ant_list[w]
-                            # if ant has not moved yet, use it
-                            if not moved:
-                                # only move in if target spot is move-in-able
-                                # there is only one case where v is not passable
-                                #   when it is the starting spot (i.e. hill raze leader)
-                                if self.is_passable(v):
-                                    self.issue_order((w, BEHIND[e]))
-                                else:
-                                    # stay stationary otherwise
-                                    self.issue_order((w, None))
-                                # set first ant
-                                if first_ant_loc is None:
-                                    first_ant_loc = w
-                                # increment ant count
-                                moved_ant_count += 1
-                        
-        return first_ant_loc  
-    
     def visible(self, loc):
         ' determine which squares are visible to the given player '
 

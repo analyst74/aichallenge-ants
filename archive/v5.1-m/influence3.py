@@ -45,7 +45,7 @@ class Influence():
         self.map[loc] = value
         all_neighbours = path.bfs(self.gamestate, [loc], range**2, lambda x : True)
         for n_loc in all_neighbours:
-            self.map[n_loc] += value / self.gamestate.manhattan_distance(loc, n_loc)
+            self.map[n_loc] = value / self.gamestate.manhattan_distance(loc, n_loc)
         
     def decay(self):
         'decay self.map'

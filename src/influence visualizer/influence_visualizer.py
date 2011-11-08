@@ -27,7 +27,7 @@ cmap2 = mpl.colors.LinearSegmentedColormap.from_list('my_colormap',
 zvals = np.random.rand(100,100)*10-5
 #print(zvals)
 img2 = pyplot.imshow(map_data,interpolation='nearest',
-                    vmin=-1, vmax=1,
+                    #vmin=-2, vmax=2,
                     cmap = cmap2,
                     origin='upper')
 

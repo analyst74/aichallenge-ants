@@ -5,37 +5,34 @@
 # License: all your base are belong to us
 
 from core import WATER
-import math, path
+import math, path, numpy
 
 class Influence():
     def __init__(self, gamestate, decay_multiplier):
         self.gamestate = gamestate
         self.decay_multiplier = decay_multiplier
-        self.map = {(row, col): 0.0 for col in xrange(self.gamestate.cols) 
-                    for row in xrange(self.gamestate.rows)}
+        self.map = numpy.zeros((self.gamestate.rows, self.gamestate.cols))
+        self.non_water_locs = [(row, col) for col in xrange(self.gamestate.cols) 
+                    for row in xrange(self.gamestate.rows)]
     
     def diffuse(self):
         'diffuse self.map'
         # initiate buffer
-        #buffer = {(row, col): 0 for col in xrange(self.gamestate.cols) 
-        #        for row in xrange(self.gamestate.rows)}
-        buffer = {}
-        for key in self.map:
-            buffer[key] = self.map[key]
+        buffer = numpy.copy(self.map)
+        #for key in self.map:
+        #    buffer[key] = self.map[key]
             
         # for each item in self.map that is not water
-        non_water_locs = [loc for loc in self.map if loc not in self.gamestate.water_list and math.fabs(self.map[loc]) > 0.01]
+        self.non_water_locs = [loc for loc in self.non_water_locs if loc not in self.gamestate.water_list]
         # find surrounding non-water nodes and diffuse to them
-        for cur_loc in non_water_locs:
+        for cur_loc in self.non_water_locs:
             neighbours = [loc for loc in self.gamestate.neighbour_table[cur_loc]
                         if loc not in self.gamestate.water_list]
-            # * 0.125 is three times faster than / 8.0
-            neighbour_val = self.map[cur_loc] * 0.125
-            cur_val = -neighbour_val * len(neighbours)
+            # new value = cur value - value goes to neighbours + value come from neighbours
+            neighbour_vals = sum([self.map[loc] / 8.0 for loc in neighbours])
+            cur_val = buffer[cur_loc] - self.map[cur_loc] / 8.0 * len(neighbours) + neighbour_vals
             # add node/value to buffer
-            buffer[cur_loc] += cur_val
-            for n_loc in neighbours:
-                buffer[n_loc] += neighbour_val
+            buffer[cur_loc] = cur_val
         # copy buffer to map
         self.map = buffer
     
@@ -45,7 +42,7 @@ class Influence():
         self.map[loc] = value
         all_neighbours = path.bfs(self.gamestate, [loc], range**2, lambda x : True)
         for n_loc in all_neighbours:
-            self.map[n_loc] += value / self.gamestate.manhattan_distance(loc, n_loc)
+            self.map[n_loc] = value / self.gamestate.manhattan_distance(loc, n_loc)
         
     def decay(self):
         'decay self.map'

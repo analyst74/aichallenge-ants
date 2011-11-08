@@ -13,7 +13,7 @@ class Planner():
         self.enemy_hill_value = -10
         self.food_value = -2
         self.my_fighter_value = -3
-        self.my_explorer_value = 1
+        self.my_explorer_value = 2
         self.enemy_ant_value = 0
         
     def do_plan(self):
@@ -43,11 +43,7 @@ class Planner():
         'update dynamic goal values depending on current situation'
         pass
         # assess situation
-        my_tiles = [loc for loc in self.map if self.map[loc] > 0]
-        total_tile_count = self.gamestate.cols * self.gamestate.rows
-        logging.debug('currently owning %d in %d tiles, ratio: %f' % 
-            (len(my_tiles), total_tile_count, my_tiles/total_tile_count))
-        logging.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
+        
         # if winning 
         # if losing
         # unsure

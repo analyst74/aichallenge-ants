@@ -42,11 +42,11 @@ class MyBot:
         logging.debug('self.strat_influence.map over 0.01 count: %d' % 
             len([key for key in self.strat_influence.map if math.fabs(self.strat_influence.map[key]) > 0.01]))
         
-        if DETAIL_LOG and os.path.isdir('pickle') and int(self.gamestate.current_turn) % 10 == 0:
+        if DETAIL_LOG and os.path.isdir('pickle'):
             # dump gamestate
-            #pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
-            #pickle.dump(self.gamestate, pickle_file)
-            #pickle_file.close()
+            pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
+            pickle.dump(self.gamestate, pickle_file)
+            pickle_file.close()
             
             # dump influence map value
             pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.influence', 'wb')

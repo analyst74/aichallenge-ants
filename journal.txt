@@ -1,0 +1,9 @@
+Nov 9, 2011
+Why haven't I thought of starting a journal to organize my thinking bits better? This would be way easier to navigate than random bits in that Notes.txt!
+
+Right now, there are a few problem the AI faces:
+1, not expanding fast enough, most visible in maze maps, but also slightly inefficient on open maps
+2, not aggressive enough to take hills, partly related to the above, but can be solved differently
+3, not protecting my own hill when there is limited resources, can be solved by solving #1, or differently
+
+basically, if we solve #1, we'd have huge improvements!

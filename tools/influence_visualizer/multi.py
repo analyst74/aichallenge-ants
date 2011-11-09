@@ -7,13 +7,13 @@ cmd_folder = os.path.dirname(os.path.abspath('.'))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
 
-turn = sys.argv[1]
-if len(sys.argv) == 3:
-    edge = float(sys.argv[2])
+if len(sys.argv) == 2:
+    start_turn = end_turn = (int)sys.argv[1]
 else:
-    edge = 2
+    start_turn = (int)sys.argv[1]
+    end_turn = (int)sys.argv[2]
     
-pickle_file = open('../pickle/turn_' + turn + '.influence', 'r')
+pickle_file = open('../../src/pickle/turn_' + turn + '.influence', 'r')
 inf = pickle.load(pickle_file)
 pickle_file.close()
 map_data = [[0 for col in range(inf.gamestate.cols)]

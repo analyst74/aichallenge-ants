@@ -41,8 +41,7 @@ class MyBot:
         logging.debug('self.combat_time = %s' % self.combat_time)
         logging.debug('self.strat_influence.map over 0.01 count: %d' % 
             len([key for key in self.strat_influence.map if math.fabs(self.strat_influence.map[key]) > 0.01]))
-            
-    def log_detail(self):
+        
         if DETAIL_LOG and os.path.isdir('pickle'):# and int(self.gamestate.current_turn) % 10 == 0:
             # dump gamestate
             #pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
@@ -65,7 +64,7 @@ class MyBot:
         #logging.debug('strat_influence.decay().finish = %s' % str(self.gamestate.time_remaining())) 
         # use planner to set new influence
         logging.debug('self.planner.do_strategy_plan.start = %s' % str(self.gamestate.time_remaining()))
-        self.planner.do_strategy_plan(self.strat_influence)        
+        self.planner.do_strategy_plan(self.strat_influence)
         
         # diffuse strategy influence
         logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))
@@ -85,8 +84,7 @@ class MyBot:
         self.combat_time_history.append(combat_start - self.gamestate.time_remaining())
         self.combat_time_history.popleft()
         self.combat_time = max(self.combat_time_history)
-        
-        self.log_detail()
+
         # handle explorer
         self.issue_explore_task()
         logging.debug('endturn: ant_count = %d, time_elapsed = %s' % (len(self.gamestate.ant_list), self.gamestate.time_elapsed()))
@@ -118,24 +116,12 @@ class MyBot:
         # loop through all my un-moved ants and set them to explore
         # the ant_loc is an ant location tuple in (row, col) form
         for cur_loc in self.gamestate.my_unmoved_ants():
-            loc_influences = {}
-            for d in self.gamestate.passable_directions(cur_loc):
-                # add cur_loc to the mix, to give slight penalty to direction with waters
-                # because cur_loc is supposedly have fairly high influence
-                direction_row = [cur_loc] + [loc for loc in self.gamestate.direction_row(cur_loc, d, 3) 
-                                            if loc not in self.gamestate.water_list]
-                direction_inf = sum([self.strat_influence.map[loc] for loc in direction_row])
-                # normalize direction influence
-                loc_influences[d] = direction_inf / len(direction_row)
-                
-            #all_locs = [self.gamestate.destination(cur_loc, d) 
-            #            for d in self.gamestate.passable_directions(cur_loc)]
-            #loc_influences = [self.strat_influence.map[loc] for loc in all_locs]
-            logging.debug('cur_loc = %s, loc_influences = %s' % (str(cur_loc),str(loc_influences)))
-            if len(loc_influences) > 0:
-                best_directions = min(loc_influences, key=loc_influences.get)
-                logging.debug('best_directions = %s' % str(best_directions))
-                self.gamestate.issue_order((cur_loc, (best_directions)))
+            all_locs = [cur_loc] + [self.gamestate.destination(cur_loc, d) 
+                                    for d in self.gamestate.passable_directions(cur_loc)]
+            loc_influences = [self.strat_influence.map[loc] for loc in all_locs]
+            best_directions = self.gamestate.direction(cur_loc, all_locs[loc_influences.index(min(loc_influences))])
+            if len(best_directions) > 0:
+                self.gamestate.issue_order((cur_loc, choice(best_directions)))
             
             # check if we still have time left to calculate more orders
             if self.gamestate.time_remaining() < 10:

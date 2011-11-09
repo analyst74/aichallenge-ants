@@ -9,7 +9,7 @@ from math import sqrt
 
 import logging
 DEBUG_LOG_NAME = 'debug.log'
-logging.basicConfig(filename=DEBUG_LOG_NAME,level=logging.DEBUG,filemode='w')
+#logging.basicConfig(filename=DEBUG_LOG_NAME,level=logging.DEBUG,filemode='w')
 
 HILL = 20
 # enemy number will range from 1 to n-1, where n is total number of players on map

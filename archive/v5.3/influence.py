@@ -8,26 +8,28 @@ from core import WATER
 import math, path
 
 class Influence():
-    def __init__(self, gamestate):
+    def __init__(self, gamestate, decay_multiplier):
         self.gamestate = gamestate
+        self.decay_multiplier = decay_multiplier
         self.map = {(row, col): 0.0 for col in xrange(self.gamestate.cols) 
                     for row in xrange(self.gamestate.rows)}
     
-    def diffuse(self, cutoff=0.01):
+    def diffuse(self):
         'diffuse self.map'
         # initiate buffer
+        #buffer = {(row, col): 0 for col in xrange(self.gamestate.cols) 
+        #        for row in xrange(self.gamestate.rows)}
         buffer = {}
         for key in self.map:
             buffer[key] = self.map[key]
             
         # for each item in self.map that is not water
-        non_water_locs = [loc for loc in self.map if loc not in self.gamestate.water_list and math.fabs(self.map[loc]) > cutoff]
+        non_water_locs = [loc for loc in self.map if loc not in self.gamestate.water_list]
         # find surrounding non-water nodes and diffuse to them
         for cur_loc in non_water_locs:
             neighbours = [loc for loc in self.gamestate.neighbour_table[cur_loc]
                         if loc not in self.gamestate.water_list]
-            # * 0.125 is three times faster than / 8.0
-            neighbour_val = self.map[cur_loc] * 0.125
+            neighbour_val = self.map[cur_loc] / 8.0
             cur_val = -neighbour_val * len(neighbours)
             # add node/value to buffer
             buffer[cur_loc] += cur_val
@@ -39,11 +41,15 @@ class Influence():
     def set_value(self, loc, range, value):
         'set value on given loc, with its influence reaching up to range'
         # a simple/different model for diffusion is used
-        self.map[loc] += value
+        self.map[loc] = value
         all_neighbours = path.bfs(self.gamestate, [loc], range**2, lambda x : True)
         for n_loc in all_neighbours:
-            self.map[n_loc] += value / self.gamestate.manhattan_distance(loc, n_loc)
+            self.map[n_loc] = value / self.gamestate.manhattan_distance(loc, n_loc)
         
-    def decay(self, decay_multiplier):
+    def decay(self):
         'decay self.map'
-        self.map = {key:val * decay_multiplier for key,val in self.map.items()}
+        for key in self.map:
+            self.map[key] = self.map[key] * self.decay_multiplier
+            # cut off, should this be in decay instead?
+            if math.fabs(self.map[key]) < 0.0001:
+                self.map[key] = 0 

@@ -1,3 +1,14 @@
+# variant_generator.py: generate variations of given bot to be brute-force tested
+#
+# AI bot written for AI Challenge 2011 - Ants
+# Author: Bill Y
+# License: all your base are belong to us
+
+import os
+import shutil
+
+def generate():
+    template = """
 # planner.py: strategic planner, aka all-knowing-hive-mind
 #
 # AI bot written for AI Challenge 2011 - Ants
@@ -11,13 +22,14 @@ import math
 class Planner():    
     def __init__(self, gamestate):
         self.gamestate = gamestate
-        self.enemy_hill_value = -10
-        self.my_hill_value = 0
-        self.food_value = -0.5
-        self.my_fighter_value = -2
-        self.my_explorer_value = 1
-        self.enemy_ant_value = 0
-        
+        self.enemy_hill_value = %.1f
+        self.my_hill_value = %.1f
+        self.food_value = %.1f
+        self.my_fighter_value = %.1f
+        self.my_explorer_value = %.1f
+        self.enemy_ant_value = %.1f
+    """
+    part2 = """
     def do_strategy_plan(self, influence):
         'called every turn to do planning'
         self.update_task_influence(influence)
@@ -48,6 +60,7 @@ class Planner():
 
     def update_task_influence(self, influence):
         'update dynamic goal values depending on current situation'
+        pass
         # assess situation
         my_tiles = [loc for loc in influence.map if math.fabs(influence.map[loc]) > 0.01]
         total_tile_count = self.gamestate.cols * self.gamestate.rows
@@ -58,9 +71,40 @@ class Planner():
         # if winning 
         # if losing
         # unsure
-        
-        ## send reinforcements
-        # find area with highest ant density
-        # find most desirable area (most likely due to heavy combat)
-        # find path
-        # setup task
+    """
+
+    """
+    file_counter = 1
+    enemy_hill_value= -5
+    my_hill_value = 0
+    food_value = -0.5
+    my_fighter_value = -2
+    my_explorer_value = 1
+    enemy_ant_value = 0
+    content = template % (enemy_hill_value, my_hill_value, food_value, my_fighter_value, my_explorer_value, enemy_ant_value) + part2
+    dirname = "generated/v5.2-" + str(file_counter)
+    filename = "/planner.py"
+    if not os.path.exists(dirname):
+        shutil.copytree("template", dirname)
+    file = open(dirname + filename, "w")
+    file.writelines(content)
+    file.close()
+    """
+    file_counter = 1
+    my_hill_value = 0
+    for enemy_hill_value in [-10, -40]:
+        for food_value in [-0.5, -2, -5]:
+            for my_fighter_value in [-1, -2, -4]:
+                for my_explorer_value in [1, 2]:
+                    for enemy_ant_value in [-3, -1, 0, 1]:
+                        content = template % (enemy_hill_value, my_hill_value, food_value, my_fighter_value, my_explorer_value, enemy_ant_value) + part2
+                        dirname = "generated/v5.2-" + str(file_counter)
+                        filename = "/planner.py"
+                        if not os.path.exists(dirname):
+                            shutil.copytree("template", dirname)
+                        file = open(dirname + filename, "w")
+                        file.writelines(content)
+                        file.close()
+                        file_counter += 1
+if __name__ == '__main__':
+    generate()

@@ -33,22 +33,19 @@ def get_combat_zones(gamestate):
     enemy_ants = [ant_loc for ant_loc, owner in gamestate.enemy_ants()]    
     if len(enemy_ants) == 0:
         return None
-    # first get all my ants close to enemy, aka fighters
+    
     open_fighters = [ma for ma in gamestate.my_unmoved_ants() 
         if min([gamestate.euclidean_distance2(ma, ea) for ea in enemy_ants]) < enemy_distance]
     if len(open_fighters) == 0:
         return None
-    # get all ants not in enemy range, but close to my fighters, aka supporters
+        
     open_supporters = [ma for ma in gamestate.my_unmoved_ants() 
         if ma not in open_fighters
         and min([gamestate.euclidean_distance2(ma, ma2) for ma2 in open_fighters]) < group_distance]
     
-    # set open fighters to gamestate, later used by planner
+    # set open fighters to gamestate
     gamestate.my_fighters = open_fighters
 
-    # group my fighter/supporters into group by proximity
-    # then find all enemy ants within range for each group
-    # those two groups combined is considered a combat zone
     fighter_groups = []
     while len(open_fighters) > 0:
         first_ant = open_fighters.pop()
@@ -103,7 +100,6 @@ def do_zone_combat(gamestate, zone):
     # be closer to enemy if feeling strong
     if score > 0:
         target_distance = 0
-    # be further away from enemy if not so
     elif score < 0:
         target_distance = gamestate.euclidean_distance_add(target_distance, 1)
         

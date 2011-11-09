@@ -30,43 +30,31 @@ def get_combat_zones(gamestate):
     'get all my fighter ants in groups'
     group_distance = 3**2
     enemy_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 3)
-    enemy_ants = [ant_loc for ant_loc, owner in gamestate.enemy_ants()]    
-    if len(enemy_ants) == 0:
-        return None
-    # first get all my ants close to enemy, aka fighters
-    open_fighters = [ma for ma in gamestate.my_unmoved_ants() 
-        if min([gamestate.euclidean_distance2(ma, ea) for ea in enemy_ants]) < enemy_distance]
-    if len(open_fighters) == 0:
-        return None
-    # get all ants not in enemy range, but close to my fighters, aka supporters
-    open_supporters = [ma for ma in gamestate.my_unmoved_ants() 
-        if ma not in open_fighters
-        and min([gamestate.euclidean_distance2(ma, ma2) for ma2 in open_fighters]) < group_distance]
+    enemy_ants = [ant_loc for ant_loc, owner in gamestate.enemy_ants()]
+    open_fighters = path.bfs(gamestate, enemy_ants, enemy_distance, 
+        lambda loc : gamestate.is_my_unmoved_ant(loc))
+    open_supporters = path.bfs(gamestate, open_fighters, group_distance, 
+        lambda loc : gamestate.is_my_unmoved_ant(loc) and loc not in open_fighters)
+    all_my_ants = [ant for ant in gamestate.my_ants() if ant not in open_fighters]
     
-    # set open fighters to gamestate, later used by planner
+    # set open fighters to gamestate
     gamestate.my_fighters = open_fighters
 
-    # group my fighter/supporters into group by proximity
-    # then find all enemy ants within range for each group
-    # those two groups combined is considered a combat zone
     fighter_groups = []
     while len(open_fighters) > 0:
         first_ant = open_fighters.pop()
         group = [first_ant]
         group_i = 0
         while len(group) > group_i:
-            fighter_friends = [ant for ant in open_fighters 
-                if gamestate.euclidean_distance2(group[group_i], ant) < group_distance]
-            supporter_friends = [ant for ant in open_supporters 
-                if gamestate.euclidean_distance2(group[group_i], ant) < group_distance]
+            fighter_friends = [ant for ant in open_fighters if gamestate.euclidean_distance2(group[group_i], ant) < group_distance]
+            supporter_friends = [ant for ant in open_supporters if gamestate.euclidean_distance2(group[group_i], ant) < group_distance]
             group.extend(fighter_friends)
             group.extend(supporter_friends)
             open_fighters = [ant for ant in open_fighters if ant not in fighter_friends]
             open_supporters = [ant for ant in open_supporters if ant not in supporter_friends]
             group_i += 1
         
-        group_enemy = [ea for ea in enemy_ants 
-            if min([gamestate.euclidean_distance2(ma, ea) for ma in group]) < enemy_distance]
+        group_enemy = [ea for ea in enemy_ants if min([gamestate.euclidean_distance2(ma, ea) for ma in group]) < enemy_distance]
         fighter_groups.append((group, group_enemy))
 
     return fighter_groups
@@ -103,7 +91,6 @@ def do_zone_combat(gamestate, zone):
     # be closer to enemy if feeling strong
     if score > 0:
         target_distance = 0
-    # be further away from enemy if not so
     elif score < 0:
         target_distance = gamestate.euclidean_distance_add(target_distance, 1)
         

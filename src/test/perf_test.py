@@ -51,6 +51,9 @@ loc2 = (10,10)
     print t1.timeit(number=10000)
     print t2.timeit(number=10000)  
 
+def flatten_list_test():
+    setup = """
+l = [
     
 if __name__ == '__main__':
     #inf1_v_inf2()

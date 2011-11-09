@@ -1,3 +1,4 @@
+
 # planner.py: strategic planner, aka all-knowing-hive-mind
 #
 # AI bot written for AI Challenge 2011 - Ants
@@ -11,13 +12,13 @@ import math
 class Planner():    
     def __init__(self, gamestate):
         self.gamestate = gamestate
-        self.enemy_hill_value = -10
-        self.my_hill_value = 0
+        self.enemy_hill_value = -10.0
+        self.my_hill_value = 0.0
         self.food_value = -0.5
-        self.my_fighter_value = -2
-        self.my_explorer_value = 1
-        self.enemy_ant_value = 0
-        
+        self.my_fighter_value = -1.0
+        self.my_explorer_value = 1.0
+        self.enemy_ant_value = 0.0
+    
     def do_strategy_plan(self, influence):
         'called every turn to do planning'
         self.update_task_influence(influence)
@@ -48,6 +49,7 @@ class Planner():
 
     def update_task_influence(self, influence):
         'update dynamic goal values depending on current situation'
+        pass
         # assess situation
         my_tiles = [loc for loc in influence.map if math.fabs(influence.map[loc]) > 0.01]
         total_tile_count = self.gamestate.cols * self.gamestate.rows
@@ -58,9 +60,4 @@ class Planner():
         # if winning 
         # if losing
         # unsure
-        
-        ## send reinforcements
-        # find area with highest ant density
-        # find most desirable area (most likely due to heavy combat)
-        # find path
-        # setup task
+    

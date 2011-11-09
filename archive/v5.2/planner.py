@@ -48,6 +48,7 @@ class Planner():
 
     def update_task_influence(self, influence):
         'update dynamic goal values depending on current situation'
+        pass
         # assess situation
         my_tiles = [loc for loc in influence.map if math.fabs(influence.map[loc]) > 0.01]
         total_tile_count = self.gamestate.cols * self.gamestate.rows
@@ -58,9 +59,3 @@ class Planner():
         # if winning 
         # if losing
         # unsure
-        
-        ## send reinforcements
-        # find area with highest ant density
-        # find most desirable area (most likely due to heavy combat)
-        # find path
-        # setup task

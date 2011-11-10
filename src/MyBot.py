@@ -87,6 +87,8 @@ class MyBot:
         self.combat_time = max(self.combat_time_history)
         
         self.log_detail()
+        # do special tasks
+        self.planner.do_task(self.strat_influence)
         # handle explorer
         self.issue_explore_task()
         logging.debug('endturn: ant_count = %d, time_elapsed = %s' % (len(self.gamestate.ant_list), self.gamestate.time_elapsed()))
@@ -131,10 +133,10 @@ class MyBot:
             #all_locs = [self.gamestate.destination(cur_loc, d) 
             #            for d in self.gamestate.passable_directions(cur_loc)]
             #loc_influences = [self.strat_influence.map[loc] for loc in all_locs]
-            logging.debug('cur_loc = %s, loc_influences = %s' % (str(cur_loc),str(loc_influences)))
+            #logging.debug('cur_loc = %s, loc_influences = %s' % (str(cur_loc),str(loc_influences)))
             if len(loc_influences) > 0:
                 best_directions = min(loc_influences, key=loc_influences.get)
-                logging.debug('best_directions = %s' % str(best_directions))
+                #logging.debug('best_directions = %s' % str(best_directions))
                 self.gamestate.issue_order((cur_loc, (best_directions)))
             
             # check if we still have time left to calculate more orders

@@ -1,9 +1,16 @@
 Nov 9, 2011
+I've got an idea, record the direction of each spot, and in the past n turns (say 10), where did other ants from this spot moved toward? If the majority past thresh hold x (say 50%), then we will just move toward the same direction.
+This will likely cause 2 effects:
+1, when starting out from a tight maze, ants will not be stuck close to ant hills bouncing around because the "observer effect" caused by other ants
+2, this will cause higher chance of flocking in denser  situation, hopefully driving more ants to go toward heavy combat zones
+
+Nov 8, 2011
 Why haven't I thought of starting a journal to organize my thinking bits better? This would be way easier to navigate than random bits in that Notes.txt!
 
 Right now, there are a few problem the AI faces:
 1, not expanding fast enough, most visible in maze maps, but also slightly inefficient on open maps
 2, not aggressive enough to take hills, partly related to the above, but can be solved differently
 3, not protecting my own hill when there is limited resources, can be solved by solving #1, or differently
+4, ant movement is not prioritized, i.e. when retreating, we want to make sure the ant in front line can retreat
 
 basically, if we solve #1, we'd have huge improvements!

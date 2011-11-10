@@ -14,9 +14,10 @@ class Planner():
         self.enemy_hill_value = -20
         self.my_hill_value = 0
         self.food_value = -0.5
-        self.my_fighter_value = -4
+        self.my_fighter_value = -1
         self.my_explorer_value = 1
         self.enemy_ant_value = 0
+        self.enemy_ninja_value = -5
         
     def do_strategy_plan(self, influence):
         'called every turn to do planning'
@@ -26,8 +27,8 @@ class Planner():
     def update_general_influence(self, influence):
         'update influence map with goals found on gamestate'
         for food_loc in self.gamestate.food_list:
-            #influence.set_value(food_loc, 3, self.food_value)
-            influence.map[food_loc] += self.food_value
+            influence.set_value(food_loc, 3, self.food_value)
+            #influence.map[food_loc] += self.food_value
         
         # my explorers
         for ant_loc in [ant for ant in self.gamestate.my_ants() 
@@ -52,13 +53,21 @@ class Planner():
         # assess situation
         my_tiles = [loc for loc in influence.map if math.fabs(influence.map[loc]) > 0.01]
         total_tile_count = self.gamestate.cols * self.gamestate.rows
+        control = float(len(my_tiles))/total_tile_count
         logging.debug('currently owning %d in %d tiles, ratio: %f' % 
             (len(my_tiles), total_tile_count, float(len(my_tiles))/total_tile_count))
         logging.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
         logging.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
-        # if winning 
-        # if losing
-        # unsure
+        
+        # alter aggressiveness as situation changes
+        self.my_fighter_value = -1 - control / 0.3 % 1
+        self.enemy_ant_value = 0 - (control / 0.3 % 1) * 2
+        
+        # hill defense
+        if len(self.gamestate.my_hills()) == 1:
+            my_hill = self.gamestate.my_hills()[0]
+            for enemy_ninja in [ant for ant, owner in self.gamestate.enemy_ants() if self.gamestate.manhattan_distance(my_hill, ant) < 8]:
+                influence.map[my_hill] += self.enemy_ninja_value
         
         ## send reinforcements
         # find area with highest ant density

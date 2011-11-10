@@ -1,9 +1,5 @@
 Random sparkles:
-- try different retreat values (maybe making ant to regroup better?)
-    alternatively: make ant-assist more prompt
-- improve long distance BFS search by BP value, i.e. razing far-away hill
-	i.e. starting from a hill with 0 BP value, find first spot with non-zero BP value, then restart from there, until either finding enough ants or reaching another threadhold (BP value > 2x current?)
-- task/ant prioritization
+task/ant prioritization
     - one way is to group ant into priority groups (i.e. individual combat groups, all explorers, all food gatherers etc) with same priority setting for similar task, then override particular groups/ants as the planner sees fit. Then resolve movement of each group from top priority to lowest, there could possibly be some in-group priority for each ant as well, for certain group, like combat groups
         - simplest move is go from ant to ant (top to bottom priority)
             downside is that it doesn't address coordinated move, like for ant A,B,C next to each other, A moving to B's position, B to C's position and C somewhere else
@@ -13,30 +9,3 @@ Random sparkles:
         - or when moving one ant, it *pushes* other unmoved ant(lower priority) around to make way to its target
             potentially unwanted outcome
     
-Architecture:
-- each ant has a flag marking it as free/moved
-- main game loop start with various tasks, ordered by precedence, and move appropriate ant to achieve those objectives. this process repeats until all tasks are completed
-    - order of importance: protect home, gather, raze, combat, explore
-
-Tasks
-- protect home
-- gather food
-    keep track of known food, loop through all of them and find nearest ant (ignore enemy ant for now), stopping at a max radius (i.e. 5)
-- combat
-    active on all ants who have enemy in range x (heuristic, can start with attack radius + 2)
-    calculate current threat state, by calculating enemy ants / friendly ants within range x
-    if outnumbered (threat level > 1), run toward friendly, by calculating threat state of each valid direction (lowest)
-        potential improvement, instead of check next step, check n steps (heuristic)
-    if outnumber enemy (threat level < 1), run toward enemy, by threat state of each valid direction (highest)
-- raze
-    similar logic as gather food, except enemy hill location is remembered until razed, and a greater number of ants will be called for
-- explore
-    establish beaten path value, every time a block is being stepped on, its beaten path value increases by x (heuristic)
-    ant in explore mode will choose path with smallest x, aka least traveled route
-    beaten path value is reduced 
-    
-Combat:
-combat logic is only applied to tasks noted with (combat-aware), in those situations, individual ants will assess strength ratio, if it is out numbered, it will retreat to opposite direction
-    
-Fail-safe check:
-- make sure ants do not go into the same spot, killing each other by updating map info as soon one ant makes a move (in issue_order function)

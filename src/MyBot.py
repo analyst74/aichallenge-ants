@@ -69,7 +69,7 @@ class MyBot:
         
         # diffuse strategy influence
         logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))
-        for i in xrange(3):
+        for i in xrange(5):
             if self.gamestate.time_remaining() <  self.combat_time + 50:
                 logging.debug('bailing diffuse after %d times' % (i))
                 break
@@ -131,10 +131,10 @@ class MyBot:
             #all_locs = [self.gamestate.destination(cur_loc, d) 
             #            for d in self.gamestate.passable_directions(cur_loc)]
             #loc_influences = [self.strat_influence.map[loc] for loc in all_locs]
-            logging.debug('cur_loc = %s, loc_influences = %s' % (str(cur_loc),str(loc_influences)))
+            #logging.debug('cur_loc = %s, loc_influences = %s' % (str(cur_loc),str(loc_influences)))
             if len(loc_influences) > 0:
                 best_directions = min(loc_influences, key=loc_influences.get)
-                logging.debug('best_directions = %s' % str(best_directions))
+                #logging.debug('best_directions = %s' % str(best_directions))
                 self.gamestate.issue_order((cur_loc, (best_directions)))
             
             # check if we still have time left to calculate more orders

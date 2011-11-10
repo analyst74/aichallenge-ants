@@ -85,7 +85,7 @@ class Planner():
         high_dense_val = influence.map[high_dense_loc]
         # find closest desirable area using bfs
         route = path.bfs_findtask(self.gamestate, influence, high_dense_loc, 500)
-        # setup task
-        if len(route) > 3:
+        # setup task, only long distance ones count
+        if len(route) > 8:
             self.route_task = (route, high_dense_val)
         logging.debug('found route_task: %s' % str(self.route_task))

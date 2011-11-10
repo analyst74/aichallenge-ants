@@ -98,15 +98,15 @@ def do_zone_combat(gamestate, zone):
         
     score, target_distance = eval_formation(gamestate, my_group, enemy_group)
     
-    #logging.debug('score, target_distance = %s, %s' % 
-    #    (str(score), str(target_distance)))
+    logging.debug('score, target_distance = %s, %s' % 
+        (str(score), str(target_distance)))
     # be closer to enemy if feeling strong
     if score > 0:
         target_distance = 0
     # be further away from enemy if not so
-    elif score < 0:
-        target_distance = gamestate.euclidean_distance_add(target_distance, 1)
-        
+    elif score <= 0:
+        target_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 1)
+    
     # for each ant, figure out a position that is smallest above average
     for ant in my_group:
         possible_moves = [ant] + [n_loc for n_loc in gamestate.get_neighbour_locs(ant) 

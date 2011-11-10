@@ -19,7 +19,7 @@ LAND = -2
 FOOD = -3
 WATER = -4
 
-STRAT_DECAY = 0.9
+STRAT_DECAY = 0.8
 
 AIM = {'n': (-1, 0),
        'e': (0, 1),

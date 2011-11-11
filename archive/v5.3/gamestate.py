@@ -140,6 +140,14 @@ class GameState():
     def time_elapsed(self):
         return int(1000 * (time.clock() - self.turn_start_time))
     
+    def move_away(self, start_loc, avoid_loc):
+        'move to anywhere other than start_loc and avoid_loc'
+        all_directions = self.passable_directions(start_loc)
+        avoid_directions = self.direction(start_loc, avoid_loc)
+        valid_directions = [d for d in all_directions if d not in avoid_directions] + [None]
+                    
+        self.issue_order((start_loc, valid_directions[0]))
+    
     def issue_order(self, order):
         'issue an order by writing the proper ant location and direction'
         (row, col), direction = order

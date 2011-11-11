@@ -1,3 +1,16 @@
+Nov 10, 2011
+Idea to Revamp the influence map:
+1, change it re-generate every turn, so no history is kept
+	1a, this allows not setting influence on my own ant
+	1b, alternatively, we can set huge negative influence on desirables to cloud over my ant's influence, without worrying about lingering effect
+2, only blur from desirabilities
+3, keep track of visible, explored but not visible and un-explored space, giving them appropriate influence level
+
+challenges:
+the map must be fully diffused, meaning no spot with 0 influence
+	- one remedy is to still 
+
+
 Nov 9, 2011
 I've got an idea, record the direction of each spot, and in the past n turns (say 10), where did other ants from this spot moved toward? If the majority past thresh hold x (say 50%), then we will just move toward the same direction.
 This will likely cause 2 effects:

@@ -8,10 +8,10 @@ from core import *
 from gamestate import GameState
 from influence3 import Influence
 from planner import Planner
-from combat import battle_line2 as battle
 from random import choice
 from collections import deque
 
+import battle_line2 as battle
 import sys, os, pickle, traceback, math
 
 DETAIL_LOG = False

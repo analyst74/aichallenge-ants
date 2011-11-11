@@ -98,8 +98,8 @@ def do_zone_combat(gamestate, zone):
         
     score, target_distance = eval_formation(gamestate, my_group, enemy_group)
     
-    logging.debug('score, target_distance = %s, %s' % 
-        (str(score), str(target_distance)))
+    #logging.debug('score, target_distance = %s, %s' % 
+    #    (str(score), str(target_distance)))
     # be closer to enemy if feeling strong
     if score > 0:
         target_distance = 0

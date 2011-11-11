@@ -72,13 +72,14 @@ class Planner():
         # assess situation
         my_tiles = [loc for loc in influence.map if math.fabs(influence.map[loc]) > 0.01]
         total_tile_count = self.gamestate.cols * self.gamestate.rows
-        self.winning_percentage = len(my_tiles), total_tile_count, float(len(my_tiles))/total_tile_count
-        logging.debug('currently owning %d in %d tiles, ratio: %f' % self.winning_percentage)
+        self.winning_percentage = float(len(my_tiles))/total_tile_count
+        logging.debug('currently owning %d in %d tiles, ratio: %f' % 
+			(len(my_tiles), total_tile_count, self.winning_percentage))
         logging.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
         logging.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
         
         # alter aggressiveness as situation changes
-        self.my_fighter_value = -1 - self.winning_percentage / 0.3 % 1
+        self.my_fighter_value = 0 - 1 - (self.winning_percentage / 0.3 % 1)
         self.enemy_ant_value = 0 - (self.winning_percentage / 0.3 % 1) * 2
         
         # hill defense

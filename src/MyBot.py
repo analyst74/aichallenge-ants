@@ -70,7 +70,7 @@ class MyBot:
         # diffuse strategy influence
         logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))
         for i in xrange(5):
-            if self.gamestate.time_remaining() <  self.combat_time + 100:
+            if self.gamestate.time_remaining() <  self.combat_time + 150:
                 logging.debug('bailing diffuse after %d times' % (i))
                 break
             diffuse_start = self.gamestate.time_remaining()

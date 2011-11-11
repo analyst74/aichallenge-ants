@@ -69,7 +69,7 @@ class MyBot:
         
         # diffuse strategy influence
         logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))
-        for i in xrange(5):
+        for i in xrange(3):
             if self.gamestate.time_remaining() <  self.combat_time + 100:
                 logging.debug('bailing diffuse after %d times' % (i))
                 break
@@ -91,7 +91,7 @@ class MyBot:
         self.planner.do_task(self.strat_influence)
         # handle explorer
         self.issue_explore_task()
-        logging.debug('endturn: my_ants count = %d, time_elapsed = %s' % (len(self.gamestate.my_ants()), self.gamestate.time_elapsed()))
+        logging.debug('endturn: ant_count = %d, time_elapsed = %s' % (len(self.gamestate.ant_list), self.gamestate.time_elapsed()))
 
     def issue_combat_task(self):
         'combat logic'

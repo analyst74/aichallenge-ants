@@ -36,7 +36,7 @@ class Influence():
         # copy buffer to map
         self.map = buffer
     
-	def set_value(self, loc, value, level):
+	def set_values(self, loc, value, level):
 		'set value on given loc, with its influence reaching up to range'
 		all_neighbours = [loc for loc in self.gamestate.neighbour_table[loc] 
 						if loc not in self.gamestate.water_list]

@@ -17,7 +17,10 @@ class Planner():
         self.my_fighter_value = -1
         self.my_explorer_value = 1
         self.enemy_ant_value = 0
+<<<<<<< HEAD
         self.enemy_ninja_value = -5
+=======
+>>>>>>> 61e5b63f214976917b07d5d39935d7675fdc9f7f
         self.route_task = None
         self.winning_percentage = 0.0
         
@@ -77,6 +80,7 @@ class Planner():
         logging.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
         logging.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
         
+<<<<<<< HEAD
         # alter aggressiveness as situation changes
         #self.my_fighter_value = -1 - self.winning_percentage / 0.3 % 1
         #self.enemy_ant_value = 0 - (self.winning_percentage / 0.3 % 1) * 2
@@ -87,6 +91,8 @@ class Planner():
             for enemy_ninja in [ant for ant, owner in self.gamestate.enemy_ants() if self.gamestate.manhattan_distance(my_hill, ant) < 8]:
                 influence.map[my_hill] += self.enemy_ninja_value
         
+=======
+>>>>>>> 61e5b63f214976917b07d5d39935d7675fdc9f7f
         ## create route task
         # find area with highest ant density
         high_dense_loc = max(influence.map, key=influence.map.get)
@@ -96,4 +102,8 @@ class Planner():
         # setup task, only long distance ones count
         if len(route) > 8:
             self.route_task = (route, high_dense_val)
+<<<<<<< HEAD
         logging.debug('found route_task: %s' % str(self.route_task))
+=======
+        logging.debug('found route_task: %s' % str(self.route_task))
+>>>>>>> 61e5b63f214976917b07d5d39935d7675fdc9f7f

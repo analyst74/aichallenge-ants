@@ -14,10 +14,10 @@ PLANNER_SCALE = 1
 class Planner():    
     def __init__(self, gamestate):
         self.gamestate = gamestate
-        self.enemy_hill_value = -PLANNER_SCALE * 50
+        self.enemy_hill_value = -PLANNER_SCALE * 100
         self.my_hill_value = 0
-        self.food_value = -PLANNER_SCALE
-        self.my_fighter_value = -PLANNER_SCALE
+        self.food_value = -PLANNER_SCALE * 2
+        self.my_fighter_value = -PLANNER_SCALE * 0.5
         self.my_explorer_value = PLANNER_SCALE
         self.enemy_ant_value = 0
         self.enemy_ninja_value = -PLANNER_SCALE * 5

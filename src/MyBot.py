@@ -84,7 +84,10 @@ class MyBot:
             self.diffuse_time = max([diffuse_duration, self.diffuse_time])
         self.diffuse_time -= 1
         logging.debug('strat_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 
-                
+
+        # razing nearby hill takes precedence
+        self.raze_override()
+        
         # handle combat
         combat_start = self.gamestate.time_remaining()
         self.issue_combat_task()
@@ -97,6 +100,14 @@ class MyBot:
         self.issue_explore_task()
         logging.debug('endturn: my_ants count = %d, time_elapsed = %s' % (len(self.gamestate.my_ants()), self.gamestate.time_elapsed()))
 
+    def raze_override(self):
+        'razing close-by hill takes precedence over combat'
+        for hill_loc, owner in self.gamestate.enemy_hills():
+            for n_loc in self.gamestate.neighbour_table[hill_loc]:
+                if n_loc in self.gamestate.my_ants():
+                    direction = self.gamestate.direction(n_loc, hill_loc) + [None]
+                    self.gamestate.issue_order((n_loc, direction[0]))
+        
     def issue_combat_task(self):
         'combat logic'
         logging.debug('issue_combat_task.start = %s' % str(self.gamestate.time_remaining())) 

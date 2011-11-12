@@ -19,7 +19,9 @@ LAND = -2
 FOOD = -3
 WATER = -4
 
-STRAT_DECAY = 0.8
+DECAY_RATE = 0.9
+CUTOFF = 0.000001
+EXPLORE_GAP = 10
 
 AIM = {'n': (-1, 0),
        'e': (0, 1),

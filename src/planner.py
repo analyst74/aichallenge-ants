@@ -6,7 +6,7 @@
 
 from core import logging, ALL_DIRECTIONS, BEHIND
 from collections import deque
-#from influence5 import Influence
+from influence3 import Influence
 import math, path
 
 class Planner():    

@@ -4,7 +4,7 @@
 # Author: Bill Y
 # License: all your base are belong to us
 
-import sys, random, time, numpy
+import sys, random, time, numpy as np
 from core import *
 
 PLAYER_ANT = 'abcdefghij'
@@ -19,6 +19,7 @@ class GameState():
         self.cols = None
         self.rows = None
         self.map = None
+        #self.strat_map = None # simplified nodes of map
         self.hill_list = {}
         self.ant_list = {}
         self.my_fighters = []
@@ -62,8 +63,9 @@ class GameState():
                     self.spawnradius2 = int(tokens[1])
                 elif key == 'turns':
                     self.turns = int(tokens[1])
-        self.map = numpy.array([[LAND for col in range(self.cols)]
+        self.map = np.array([[LAND for col in range(self.cols)]
                     for row in range(self.rows)])
+        #self.strat_map = np.ones((int(self.rows/EXPLORE_GAP), int(self.cols/EXPLORE_GAP)))
                     
         # setup neighbour table
         self.neighbour_table = {(row,col):self.get_neighbour_locs((row,col)) 
@@ -132,7 +134,10 @@ class GameState():
                             owner = int(tokens[3])
                             self.map[row][col] = HILL
                             self.hill_list[(row, col)] = owner
-
+        # for row in range(self.strat_map.shape[0]):
+            # for col in range(self.strat_map.shape[1]):
+                # if self.visible((row*EXPLORE_GAP, col*EXPLORE_GAP)):
+                    # self.strat_map[row,col] = 0
         
     def time_remaining(self):
         return self.turntime - self.time_elapsed()
@@ -317,7 +322,7 @@ class GameState():
             # loop through ants and set all squares around ant as visible
             self.vision = [[False]*self.cols for row in range(self.rows)]
             for ant in self.my_ants():
-                a_row, a_col = ant.loc
+                a_row, a_col = ant
                 for v_row, v_col in self.vision_offsets_2:
                     self.vision[a_row+v_row][a_col+v_col] = True
         row, col = loc

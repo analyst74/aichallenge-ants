@@ -20,17 +20,8 @@ AIM = {'n': (-1, 0),
        'e': (0, 1),
        's': (1, 0),
        'w': (0, -1)}
-
-def diffuse_n(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim=2] gs_map, int n):
-    assert inf_map.dtype == DTYPEF and gs_map.dtype == DTYPEI
-    cdef int rows = inf_map.shape[0]
-    cdef int cols = inf_map.shape[1]
-    cdef np.ndarray[DTYPEF_t, ndim=2] buffer = np.zeros([rows, cols], dtype=DTYPEF)     
-    for i in range(n):
-        buffer = diffuse_once(buffer, gs_map)
-    return buffer
        
-def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim=2] gs_map):
+def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim=2] gs_map, float cutoff):
     'diffuse inf_map'
     assert inf_map.dtype == DTYPEF and gs_map.dtype == DTYPEI
     cdef int rows = inf_map.shape[0]
@@ -39,24 +30,25 @@ def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim
     cdef int col = 0
     cdef int d_row = 0
     cdef int d_col = 0
-    cdef DTYPEF_t total_value
-    cdef int divider = 0
+    cdef DTYPEF_t diffuse_value
+    cdef int neighbour_count = 0
     cdef np.ndarray[DTYPEF_t, ndim=2] buffer = np.zeros([rows, cols], dtype=DTYPEF) 
     #buffer = np.zeros([rows,cols])
     
     # find surrounding non-water nodes and diffuse to them
     for row in range(rows):
         for col in range(cols):
-            if gs_map[row,col] != WATER:
-                total_value = inf_map[row,col]
-                divider = 1
+            if gs_map[row,col] != WATER and (inf_map[row,col] > cutoff or inf_map[row,col] < -cutoff):
+                diffuse_value = inf_map[row,col] * 0.15
+                neighbour_count = 0
                 for direction in ALL_DIRECTIONS:
                     d_row, d_col = destination(row, col, direction, rows, cols)
                     if gs_map[d_row,d_col] != WATER:
-                        total_value += inf_map[d_row,d_col]
-                        divider += 1
+                        #print('%d,%d, gs_map = %s' % (d_row, d_col, str(gs_map[d_row,d_col])))
+                        buffer[d_row,d_col] += diffuse_value
+                        neighbour_count += 1
 
-                buffer[row, col] = total_value / divider
+                buffer[row, col] += inf_map[row,col] - diffuse_value * neighbour_count
     # copy buffer to inf_map
     return buffer
 

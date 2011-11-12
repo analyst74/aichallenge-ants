@@ -58,13 +58,61 @@ def setup_combat_zones():
     gamestate = pickle.load(pickle_file)
     pickle_file.close()
     return gamestate
+
+def setup_overall():
+    ready = """
+turn 0
+loadtime 3000
+turntime 1000
+rows 43
+cols 39
+turns 50
+viewradius2 55
+attackradius2 5
+spawnradius2 1
+player_seed 42
+ready
+    """
+    setup = """
+import MyBot
+    """
+    turns = """
+turn 1
+w 22 18
+w 22 19
+w 22 20
+w 23 17
+w 23 21
+h 28 19 0
+a 28 19 0
+f 26 23
+go
+turn 2
+h 28 19 0
+a 28 20 0
+f 25 26
+f 26 23
+go
+    """
+    return setup, turns
+
+def profile_influence():
+    inf3, inf4, inf5 = setup_inf()
+    cProfile.run('inf3.diffuse()')
+    cProfile.run('inf4.diffuse()')
+    cProfile.run('inf5.diffuse()')
+    
+def profile_combat_zone():
+    gs = setup_combat_zones()
+    cProfile.run('battle1.get_combat_zones(gs)')
+    cProfile.run('battle2.get_combat_zones(gs)')
+
+def profile_overall():
+    ready, turns = setup_overall()
+    
     
 if __name__ == '__main__':
     inf3, inf4, inf5 = setup_inf()
     cProfile.run('inf3.diffuse()')
     cProfile.run('inf4.diffuse()')
     cProfile.run('inf5.diffuse()')
-    
-    # gs = setup_combat_zones()
-    # cProfile.run('battle1.get_combat_zones(gs)')
-    # cProfile.run('battle2.get_combat_zones(gs)')

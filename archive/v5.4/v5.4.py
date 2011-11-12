@@ -6,12 +6,12 @@
 
 from core import *
 from gamestate import GameState
-from influence5 import Influence
-from planner2 import Planner
+from influence3 import Influence
+from planner import Planner
+from combat import battle_line2 as battle
 from random import choice
 from collections import deque
 
-import battle_line as battle
 import sys, os, pickle, traceback, math
 
 DETAIL_LOG = False
@@ -39,15 +39,15 @@ class MyBot:
         logging.debug('self.diffuse_time = %d' % self.diffuse_time)
         logging.debug('self.combat_time_history = %s' % str(self.combat_time_history))
         logging.debug('self.combat_time = %s' % self.combat_time)
-        # logging.debug('self.strat_influence.map over 0.01 count: %d' % 
-            # len([key for key in self.strat_influence.map if math.fabs(self.strat_influence.map[key]) > 0.01]))
+        logging.debug('self.strat_influence.map over 0.01 count: %d' % 
+            len([key for key in self.strat_influence.map if math.fabs(self.strat_influence.map[key]) > 0.01]))
             
     def log_detail(self):
         if DETAIL_LOG and os.path.isdir('pickle'):# and int(self.gamestate.current_turn) % 10 == 0:
             # dump gamestate
-            pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
-            pickle.dump(self.gamestate, pickle_file)
-            pickle_file.close()
+            #pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
+            #pickle.dump(self.gamestate, pickle_file)
+            #pickle_file.close()
             
             # dump influence map value
             pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.influence', 'wb')
@@ -61,28 +61,22 @@ class MyBot:
         
         # decay strategy influence
         #logging.debug('strat_influence.decay().start = %s' % str(self.gamestate.time_remaining())) 
-        self.strat_influence.decay(DECAY_RATE)
-        #self.strat_influence = Influence(self.gamestate)
+        self.strat_influence.decay(STRAT_DECAY)
         #logging.debug('strat_influence.decay().finish = %s' % str(self.gamestate.time_remaining())) 
         # use planner to set new influence
         logging.debug('self.planner.do_strategy_plan.start = %s' % str(self.gamestate.time_remaining()))
-        self.planner.do_strategy_plan(self.strat_influence)
-        # for row in range(self.strat_influence.map.shape[0]):
-            # for col in range(self.strat_influence.map.shape[1]):
-                # if math.fabs(self.strat_influence.map[row,col]):
-                    # logging.debug('%d, %d = %f' % (row, col, self.strat_influence.map[row,col]))
+        self.planner.do_strategy_plan(self.strat_influence)        
         
         # diffuse strategy influence
-        logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))        
-        for i in xrange(50):
-            if self.gamestate.time_remaining() <  self.combat_time + 100:
+        logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))
+        for i in xrange(5):
+            if self.gamestate.time_remaining() <  self.combat_time + 150:
                 logging.debug('bailing diffuse after %d times' % (i))
                 break
             diffuse_start = self.gamestate.time_remaining()
-            self.strat_influence.diffuse()
+            self.strat_influence.diffuse(cutoff=0.01)
             diffuse_duration = diffuse_start - self.gamestate.time_remaining()
             self.diffuse_time = max([diffuse_duration, self.diffuse_time])
-        self.diffuse_time -= 1
         logging.debug('strat_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 
                 
         # handle combat
@@ -93,6 +87,8 @@ class MyBot:
         self.combat_time = max(self.combat_time_history)
         
         self.log_detail()
+        # do special tasks
+        self.planner.do_task(self.strat_influence)
         # handle explorer
         self.issue_explore_task()
         logging.debug('endturn: my_ants count = %d, time_elapsed = %s' % (len(self.gamestate.my_ants()), self.gamestate.time_elapsed()))
@@ -128,16 +124,16 @@ class MyBot:
             for d in self.gamestate.passable_directions(cur_loc):
                 # add cur_loc to the mix, to give slight penalty to direction with waters
                 # because cur_loc is supposedly have fairly high influence
-                #direction_row = [cur_loc] + [loc for loc in self.gamestate.direction_row(cur_loc, d, 3) 
-                #                            if loc not in self.gamestate.water_list]
-                #direction_inf = sum([self.strat_influence.map[loc] for loc in direction_row])
+                direction_row = [cur_loc] + [loc for loc in self.gamestate.direction_row(cur_loc, d, 3) 
+                                            if loc not in self.gamestate.water_list]
+                direction_inf = sum([self.strat_influence.map[loc] for loc in direction_row])
                 # normalize direction influence
-                loc_influences[d] = self.strat_influence.map[self.gamestate.destination(cur_loc, d)]
+                loc_influences[d] = direction_inf / len(direction_row)
                 
             #all_locs = [self.gamestate.destination(cur_loc, d) 
             #            for d in self.gamestate.passable_directions(cur_loc)]
             #loc_influences = [self.strat_influence.map[loc] for loc in all_locs]
-            logging.debug('cur_loc = %s, loc_influences = %s' % (str(cur_loc),str(loc_influences)))
+            #logging.debug('cur_loc = %s, loc_influences = %s' % (str(cur_loc),str(loc_influences)))
             if len(loc_influences) > 0:
                 best_directions = min(loc_influences, key=loc_influences.get)
                 #logging.debug('best_directions = %s' % str(best_directions))

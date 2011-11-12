@@ -19,8 +19,9 @@ inf = pickle.load(pickle_file)
 pickle_file.close()
 map_data = [[0 for col in range(inf.gamestate.cols)]
             for row in range(inf.gamestate.rows)]                    
-for (row, col) in inf.map:
-    map_data[row][col] = inf.map[(row, col)]
+for row in range(inf.map.shape[0]):
+    for col in range(inf.map.shape[1]):
+        map_data[row][col] = inf.map[row, col]
 
 print(min(sum(map_data, [])))
 print(max(sum(map_data, [])))

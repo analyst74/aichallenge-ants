@@ -4,12 +4,12 @@
 # Author: Bill Y
 # License: all your base are belong to us
 
-import pickle, unittest, os, sys, numpy
+import pickle, unittest, os, sys, numpy as np
 cmd_folder = os.path.dirname(os.path.abspath('.'))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
 
-from influence4 import Influence
+from influence5 import Influence
 
 class TestInfluence(unittest.TestCase):
 
@@ -21,7 +21,7 @@ class TestInfluence(unittest.TestCase):
         pickle_file = open('test_data/influence_test/turn_1.gamestate', 'r')
         gamestate = pickle.load(pickle_file)
         pickle_file.close()
-        gamestate.map = numpy.array(gamestate.map)
+        gamestate.map = np.array(gamestate.map)
         inf = Influence(gamestate)
         
         #print(str(gamestate.food_list))
@@ -68,8 +68,8 @@ class TestInfluence(unittest.TestCase):
         inf.map[(10,10)] = 10
         for i in xrange(5):
             inf.diffuse()
-            # print ('%f, %f' % (inf.map[(23,18)], inf.map[(10,10)]))
-            self.assertTrue(inf.map[(23,18)] > inf.map[(10,10)])            
+            #print ('%f, %f' % (inf.map[(23,18)], inf.map[(10,10)]))
+        self.assertTrue(inf.map[(23,18)] < inf.map[(10,10)])            
     
     def test_diffuse_multi_source_overshadow(self):
         'make sure larger influence over shadows the smaller opposite influence right next'
@@ -92,6 +92,22 @@ class TestInfluence(unittest.TestCase):
         self.assertTrue(inf.map[(x+2,y)] > inf.map[(x+2,y+1)])
         self.assertTrue(inf.map[(x+3,y)] > inf.map[(x+3, y-1)])
 
-
+    def test_diffuse_total_value_no_change(self):
+        'make sure total value of all sources do not change'
+        pickle_file = open('test_data/influence_test/turn_1.gamestate', 'r')
+        gamestate = pickle.load(pickle_file)
+        pickle_file.close()
+        inf = Influence(gamestate)
+        
+        inf.map[(23,18)] = 100
+        inf.map[(10,10)] = 100
+        inf.map[(26, 18)] = -10
+        for i in xrange(50):
+            inf.diffuse()
+        
+        # give some space for float point inaccuracy
+        #print (inf.map.sum())
+        #self.assertTrue(inf.map.sum() > 189.9 and inf.map.sum() < 190.1)
+        
 if __name__ == '__main__':
     unittest.main()

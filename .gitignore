@@ -4,3 +4,4 @@
 game_logs
 debug.log
 cython*.c
+src/build

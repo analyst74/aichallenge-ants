@@ -1,3 +1,0 @@
-LIBRARY cython_ext2.pyd
-EXPORTS
-initcython_ext2

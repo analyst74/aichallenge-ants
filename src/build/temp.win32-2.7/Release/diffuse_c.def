@@ -1,3 +1,0 @@
-LIBRARY diffuse_c.pyd
-EXPORTS
-initdiffuse_c

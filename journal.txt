@@ -1,3 +1,7 @@
+Nov 11, 2011
+1, try/resarch on if we can do gaussian blur with mask array
+2, check if ndimage distance can be used to do distancing in combat (or other more efficient distance checking)
+
 Nov 10, 2011
 Idea to Revamp the influence map:
 1, change it re-generate every turn, so no history is kept

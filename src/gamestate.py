@@ -62,8 +62,8 @@ class GameState():
                     self.spawnradius2 = int(tokens[1])
                 elif key == 'turns':
                     self.turns = int(tokens[1])
-        self.map = [[LAND for col in range(self.cols)]
-                    for row in range(self.rows)]
+        self.map = numpy.array([[LAND for col in range(self.cols)]
+                    for row in range(self.rows)])
                     
         # setup neighbour table
         self.neighbour_table = {(row,col):self.get_neighbour_locs((row,col)) 

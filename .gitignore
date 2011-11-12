@@ -1,5 +1,6 @@
 *.zip
 *.pyc
+*.pyd
 game_logs
 debug.log
-src/temp*
+cython*.c

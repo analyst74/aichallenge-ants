@@ -6,12 +6,12 @@
 
 from core import *
 from gamestate import GameState
-from influence3 import Influence
-from planner import Planner
+from influence5 import Influence
+from planner2 import Planner
 from random import choice
 from collections import deque
 
-import battle_line2 as battle
+import battle_line as battle
 import sys, os, pickle, traceback, math
 
 DETAIL_LOG = False
@@ -39,15 +39,15 @@ class MyBot:
         logging.debug('self.diffuse_time = %d' % self.diffuse_time)
         logging.debug('self.combat_time_history = %s' % str(self.combat_time_history))
         logging.debug('self.combat_time = %s' % self.combat_time)
-        logging.debug('self.strat_influence.map over 0.01 count: %d' % 
-            len([key for key in self.strat_influence.map if math.fabs(self.strat_influence.map[key]) > 0.01]))
+        # logging.debug('self.strat_influence.map over 0.01 count: %d' % 
+            # len([key for key in self.strat_influence.map if math.fabs(self.strat_influence.map[key]) > 0.01]))
             
     def log_detail(self):
         if DETAIL_LOG and os.path.isdir('pickle'):# and int(self.gamestate.current_turn) % 10 == 0:
             # dump gamestate
-            #pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
-            #pickle.dump(self.gamestate, pickle_file)
-            #pickle_file.close()
+            pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
+            pickle.dump(self.gamestate, pickle_file)
+            pickle_file.close()
             
             # dump influence map value
             pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.influence', 'wb')
@@ -61,7 +61,8 @@ class MyBot:
         
         # decay strategy influence
         #logging.debug('strat_influence.decay().start = %s' % str(self.gamestate.time_remaining())) 
-        self.strat_influence.decay(STRAT_DECAY)
+        #self.strat_influence.decay(STRAT_DECAY)        
+        self.strat_influence = Influence(self.gamestate)
         #logging.debug('strat_influence.decay().finish = %s' % str(self.gamestate.time_remaining())) 
         # use planner to set new influence
         logging.debug('self.planner.do_strategy_plan.start = %s' % str(self.gamestate.time_remaining()))
@@ -69,12 +70,12 @@ class MyBot:
         
         # diffuse strategy influence
         logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))
-        for i in xrange(5):
+        for i in xrange(50):
             if self.gamestate.time_remaining() <  self.combat_time + 150:
                 logging.debug('bailing diffuse after %d times' % (i))
                 break
             diffuse_start = self.gamestate.time_remaining()
-            self.strat_influence.diffuse(cutoff=0.01)
+            self.strat_influence.diffuse()
             diffuse_duration = diffuse_start - self.gamestate.time_remaining()
             self.diffuse_time = max([diffuse_duration, self.diffuse_time])
         logging.debug('strat_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 

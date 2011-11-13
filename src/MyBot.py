@@ -74,7 +74,7 @@ class MyBot:
         
         # diffuse strategy influence
         logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))        
-        for i in xrange(50):
+        for i in xrange(10):
             if self.gamestate.time_remaining() <  self.combat_time + 100:
                 logging.debug('bailing diffuse after %d times' % (i))
                 break
@@ -140,10 +140,11 @@ class MyBot:
                 # add cur_loc to the mix, to give slight penalty to direction with waters
                 # because cur_loc is supposedly have fairly high influence
                 #direction_row = [cur_loc] + [loc for loc in self.gamestate.direction_row(cur_loc, d, 3) 
-                #                            if loc not in self.gamestate.water_list]
+                                            if loc not in self.gamestate.water_list]
                 #direction_inf = sum([self.strat_influence.map[loc] for loc in direction_row])
                 # normalize direction influence
                 loc_influences[d] = self.strat_influence.map[self.gamestate.destination(cur_loc, d)]
+                #loc_influences[d] = direction_inf / len(direction_row)
                 
             #all_locs = [self.gamestate.destination(cur_loc, d) 
             #            for d in self.gamestate.passable_directions(cur_loc)]

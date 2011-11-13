@@ -29,21 +29,21 @@ def get_group_formations(gamestate, group):
 def get_combat_zones(gamestate):
     'get all my fighter ants in groups'
     group_distance = 3**2
+    support_distance = 1
     enemy_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 3)
-    extended_enemy_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 4)
     enemy_ants = [ant_loc for ant_loc, owner in gamestate.enemy_ants()]    
     if len(enemy_ants) == 0:
         return None
     # first get all my ants close to enemy, aka fighters
     open_fighters = [ma for ma in gamestate.my_unmoved_ants() 
         if min([gamestate.euclidean_distance2(ma, ea) for ea in enemy_ants]) < enemy_distance
-        and path.bfs_findenemy(gamestate, ma, extended_enemy_distance)]
+        and path.bfs_findenemy(gamestate, ma, enemy_distance)]
     if len(open_fighters) == 0:
         return None
     # get all ants not in enemy range, but close to my fighters, aka supporters
     open_supporters = [ma for ma in gamestate.my_unmoved_ants() 
         if ma not in open_fighters
-        and min([gamestate.euclidean_distance2(ma, ma2) for ma2 in open_fighters]) < group_distance]
+        and min([gamestate.euclidean_distance2(ma, ma2) for ma2 in open_fighters]) <= support_distance]
     
     # set open fighters to gamestate, later used by planner
     gamestate.my_fighters = open_fighters

@@ -1,7 +1,14 @@
+Nov 13, 2011
+combat - for each group, try to move them all in the same direction, through a voting system
+combat - establish a move-table, with priority and secondary preferred locatoin so higher priority ants will move to wherever they want, and lower priority ants will move to highest desirable place that's not occupied yet
+
 Nov 11, 2011
 1, try/resarch on if we can do gaussian blur with mask array
+    no
 2, check if ndimage distance can be used to do distancing in combat (or other more efficient distance checking)
+    no
 3, see if converting neighbour_table to numpy array, and pass it to cython function for lookup purpose will do any good
+    we actually do not want too many levels of diffuse call per turn, so this is good enough
 
 Nov 10, 2011
 Idea to Revamp the influence map:
@@ -11,10 +18,7 @@ Idea to Revamp the influence map:
 2, only blur from desirabilities
 3, keep track of visible, explored but not visible and un-explored space, giving them appropriate influence level
 
-challenges:
-the map must be fully diffused, meaning no spot with 0 influence
-	- one remedy is to still 
-
+ALL of the ideas above generated undesirable side effect, no go
 
 Nov 9, 2011
 I've got an idea, record the direction of each spot, and in the past n turns (say 10), where did other ants from this spot moved toward? If the majority past thresh hold x (say 50%), then we will just move toward the same direction.

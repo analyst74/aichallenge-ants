@@ -30,12 +30,14 @@ def get_combat_zones(gamestate):
     'get all my fighter ants in groups'
     group_distance = 3**2
     enemy_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 3)
+    extended_enemy_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 4)
     enemy_ants = [ant_loc for ant_loc, owner in gamestate.enemy_ants()]    
     if len(enemy_ants) == 0:
         return None
     # first get all my ants close to enemy, aka fighters
     open_fighters = [ma for ma in gamestate.my_unmoved_ants() 
-        if min([gamestate.euclidean_distance2(ma, ea) for ea in enemy_ants]) < enemy_distance]
+        if min([gamestate.euclidean_distance2(ma, ea) for ea in enemy_ants]) < enemy_distance
+        and path.bfs_findenemy(gamestate, ma, extended_enemy_distance)]
     if len(open_fighters) == 0:
         return None
     # get all ants not in enemy range, but close to my fighters, aka supporters
@@ -67,6 +69,7 @@ def get_combat_zones(gamestate):
         
         group_enemy = [ea for ea in enemy_ants 
             if min([gamestate.euclidean_distance2(ma, ea) for ma in group]) < enemy_distance]
+                    
         fighter_groups.append((group, group_enemy))
 
     return fighter_groups

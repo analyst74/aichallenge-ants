@@ -75,7 +75,7 @@ class GameState():
     def update(self, data):
         'parse engine input and update the game state'        
         # start timer
-        self.turn_start_time = time.clock()
+        self.turn_start_time = time.time()
         
         # reset vision
         self.vision = None
@@ -143,7 +143,7 @@ class GameState():
         return self.turntime - self.time_elapsed()
     
     def time_elapsed(self):
-        return int(1000 * (time.clock() - self.turn_start_time))
+        return int(1000 * (time.time() - self.turn_start_time))
     
     def move_away(self, start_loc, avoid_loc):
         'move to anywhere other than start_loc and avoid_loc'

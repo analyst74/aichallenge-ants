@@ -118,10 +118,10 @@ class MyBot:
             logging.debug('zones.count = %d' % len(zones))
             for zone in zones:
                 if len(zone[0]) > 0:
-                    #logging.debug('group combat loop for = %s' % str(zone))
-                    #logging.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
+                    logging.debug('group combat loop for = %s' % str(zone))
+                    logging.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
                     battle.do_zone_combat(self.gamestate, zone)
-                    #logging.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
+                    logging.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
                 
                 # check if we still have time left to calculate more orders
                 if self.gamestate.time_remaining() < 50:
@@ -140,7 +140,7 @@ class MyBot:
                 # add cur_loc to the mix, to give slight penalty to direction with waters
                 # because cur_loc is supposedly have fairly high influence
                 #direction_row = [cur_loc] + [loc for loc in self.gamestate.direction_row(cur_loc, d, 3) 
-                                            if loc not in self.gamestate.water_list]
+                #                            if loc not in self.gamestate.water_list]
                 #direction_inf = sum([self.strat_influence.map[loc] for loc in direction_row])
                 # normalize direction influence
                 loc_influences[d] = self.strat_influence.map[self.gamestate.destination(cur_loc, d)]

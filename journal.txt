@@ -1,6 +1,12 @@
 Nov 13, 2011
 combat - for each group, try to move them all in the same direction, through a voting system
+    bad idea, only works better in certain edge scenarios, worse in some edge scenarios, and same in most
 combat - establish a move-table, with priority and secondary preferred locatoin so higher priority ants will move to wherever they want, and lower priority ants will move to highest desirable place that's not occupied yet
+        - better idea: only do this when regrouping, as formation improvement on attacking is only possible in edge cases
+        - better idea part 2: use formation permutation to find the optimal formation
+combat - do a 1 step look ahead, for following situations: 
+    my group: press forward, or regroup behind attackradius+1
+    enemy group: press forward, stay put (we can't anticipate how enemy will regroup, and it is the same as stay put for practical purpose)
 
 Nov 11, 2011
 1, try/resarch on if we can do gaussian blur with mask array

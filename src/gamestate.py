@@ -37,6 +37,7 @@ class GameState():
         self.current_turn = 0
         self.sqrt_table = {}
         self.neighbour_table = {}
+        self.uc_distance_table = {}
 
     def setup(self, data):
         'parse initial input and setup starting game state'
@@ -257,6 +258,16 @@ class GameState():
 
     def euclidean_distance2(self, loc1, loc2):
         'calculate the euclidean distance between to locations'
+        
+        # if (loc1, loc2) not in self.uc_distance_table:
+            # row1, col1 = loc1
+            # row2, col2 = loc2
+            # d_col = min(abs(col1 - col2), self.cols - abs(col1 - col2))
+            # d_row = min(abs(row1 - row2), self.rows - abs(row1 - row2))
+            # self.uc_distance_table[(loc1, loc2)] = d_row**2 + d_col**2
+            
+        # return self.uc_distance_table[(loc1, loc2)]
+        
         row1, col1 = loc1
         row2, col2 = loc2
         d_col = min(abs(col1 - col2), self.cols - abs(col1 - col2))

@@ -1,3 +1,6 @@
+Nov 14, 2011
+combat - one problem seems to be that my ant will always attack even if obstacles make standing still a better option, this should be remedied by 1-step look ahead idea from yesterday
+
 Nov 13, 2011
 combat - for each group, try to move them all in the same direction, through a voting system
     bad idea, only works better in certain edge scenarios, worse in some edge scenarios, and same in most

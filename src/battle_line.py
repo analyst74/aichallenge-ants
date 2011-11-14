@@ -218,8 +218,9 @@ def do_zone_combat(gamestate, zone):
         attack(gamestate, my_group, enemy_group)
     # if not, regroup at safe distance
     elif score <= 1:
-        regroup2(gamestate, my_group, enemy_group)
-        
+        # only regroup for more than 1 ant
+        if len(my_group) > 1:
+            regroup2(gamestate, my_group, enemy_group)
         
 def attack(gamestate, my_group, enemy_group):    
     # for each ant, figure out a position that is closer to enemy

@@ -128,32 +128,58 @@ class MyBot:
                     break
                 
         logging.debug('issue_combat_task.finish = ' + str(self.gamestate.time_remaining())) 
-
+    
+    def normal_explore(self, my_ant):
+        'only concern influence'
+        loc_influences = {}
+        for d in self.gamestate.passable_directions(my_ant):
+            loc_influences[d] = self.strat_influence.map[self.gamestate.destination(my_ant, d)]
+            
+        #logging.debug('my_ant = %s, loc_influences = %s' % (str(my_ant),str(loc_influences)))
+        if len(loc_influences) > 0:
+            best_directions = min(loc_influences, key=loc_influences.get)
+            logging.debug('moving %s to %s' % (str(my_ant), str(best_directions)))
+            self.gamestate.issue_order((my_ant, best_directions))
+    
+    def avoidance_explore(self, my_ant, enemy_ants):
+        'explore under enemies presence'
+        safe_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, 1)
+        nav_info = []
+        for loc in self.gamestate.neighbour_table[my_ant] + [my_ant]:
+            influence = self.strat_influence.map[loc]
+            distance = min([self.gamestate.euclidean_distance2(loc, enemy_ant) for enemy_ant in enemy_ants])
+            nav_info.append((influence, distance, loc))
+            
+        # go for lowest influence that's safe
+        nav_info.sort()
+        best_loc = None
+        for info in nav_info:
+            (influence, distance, loc) = info
+            if distance > safe_distance:
+                best_loc = loc
+                break
+        # if no safe move try largest distance
+        if best_loc is None:
+            (influence, distance, loc) = sorted(nav_info, key=lambda x: x[1])[0]
+            best_loc = loc
+            
+        # do the move
+        directions = self.gamestate.direction(my_ant, best_loc) + [None]
+        self.gamestate.issue_order((my_ant, directions[0]))
+        
     def issue_explore_task(self):
-        'explore map'
+        'explore map based on influence'
         logging.debug('issue_explore_task.start = %s' % str(self.gamestate.time_remaining())) 
         # loop through all my un-moved ants and set them to explore
         # the ant_loc is an ant location tuple in (row, col) form
-        for cur_loc in self.gamestate.my_unmoved_ants():
-            loc_influences = {}
-            for d in self.gamestate.passable_directions(cur_loc):
-                # add cur_loc to the mix, to give slight penalty to direction with waters
-                # because cur_loc is supposedly have fairly high influence
-                #direction_row = [cur_loc] + [loc for loc in self.gamestate.direction_row(cur_loc, d, 3) 
-                #                            if loc not in self.gamestate.water_list]
-                #direction_inf = sum([self.strat_influence.map[loc] for loc in direction_row])
-                # normalize direction influence
-                loc_influences[d] = self.strat_influence.map[self.gamestate.destination(cur_loc, d)]
-                #loc_influences[d] = direction_inf / len(direction_row)
-                
-            #all_locs = [self.gamestate.destination(cur_loc, d) 
-            #            for d in self.gamestate.passable_directions(cur_loc)]
-            #loc_influences = [self.strat_influence.map[loc] for loc in all_locs]
-            #logging.debug('cur_loc = %s, loc_influences = %s' % (str(cur_loc),str(loc_influences)))
-            if len(loc_influences) > 0:
-                best_directions = min(loc_influences, key=loc_influences.get)
-                logging.debug('moving %s to %s' % (str(cur_loc), str(best_directions)))
-                self.gamestate.issue_order((cur_loc, (best_directions)))
+        avoidance_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, 2)
+        for my_ant in self.gamestate.my_unmoved_ants():
+            enemy_ants = [enemy_ant for enemy_ant, owner in self.gamestate.enemy_ants() 
+                        if self.gamestate.euclidean_distance2(my_ant, enemy_ant) <= avoidance_distance]
+            if len(enemy_ants) > 0:
+                self.avoidance_explore(my_ant, enemy_ants)
+            else:
+                self.normal_explore(my_ant)
             
             # check if we still have time left to calculate more orders
             if self.gamestate.time_remaining() < 10:

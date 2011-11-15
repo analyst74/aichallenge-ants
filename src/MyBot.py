@@ -178,8 +178,10 @@ class MyBot:
             enemy_ants = [enemy_ant for enemy_ant, owner in self.gamestate.enemy_ants() 
                         if self.gamestate.euclidean_distance2(my_ant, enemy_ant) <= avoidance_distance]
             if len(enemy_ants) > 0:
+                logging.debug('going into avoidance_explore')
                 self.avoidance_explore(my_ant, enemy_ants)
             else:
+                logging.debug('going into normal_explore')
                 self.normal_explore(my_ant)
             
             # check if we still have time left to calculate more orders

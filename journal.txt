@@ -15,7 +15,7 @@ combat - in winning condition, we're not pressing enemy hard enough so it can dr
         one remedy is to dynamically adjust this value, based on fighter ants / total ants ratio
             but still need to determine what is a good ratio
     - establish task route from my hill to enemy hill/stronghold
-
+    
 Nov 13, 2011
 combat - for each group, try to move them all in the same direction, through a voting system
     bad idea, only works better in certain edge scenarios, worse in some edge scenarios, and same in most

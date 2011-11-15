@@ -12,7 +12,7 @@ def get_group_formations(gamestate, group):
     # special: ant indexes do not change, in other words, actual orders needed to get from 
     # group to full_result is just group[i] move to full_result[i]
     all_locs = [group[0]] + [n_loc for n_loc in gamestate.get_neighbour_locs(group[0]) 
-                            if n_loc not in gamestate.water_list]
+                            if gamestate.is_passable_ignore_ant(n_loc)]
     full_result = []
     if len(group) > 1:
         for sub_result in get_group_formations(gamestate, group[1:]):
@@ -94,116 +94,6 @@ def eval_formation(gamestate, my_formation, enemy_formation):
     
     return (float(len(my_fighters)) / len(enemy_fighters), min_distance)
     
-# def do_zone_combat(gamestate, zone):
-    # 'alternate between expensive and cheap combat solutions'
-    # my_group, enemy_group = zone
-    # if len(my_group) < 4:
-        # do_zone_combat_expensive(gamestate, zone)
-    # else:
-        # do_zone_combat_cheap(gamestate, zone)
-        
-def do_zone_combat_expensive(gamestate, zone):
-    'find best formation among permutations'
-    my_group, enemy_group = zone
-    if len(my_group) == 0 or len(enemy_group) == 0:
-        return
-    
-    # find out possible formations
-    all_formations = get_group_formations(gamestate, my_group)
-    
-    # score each formation
-    # all dict below uses all_formation's index as key for back reference purpose
-    # separating between attack and regroup based on scores
-    attack_scores = {}
-    attack_distances = {}
-    regroup_scores = {}
-    regroup_distances = {}
-    for i in xrange(len(all_formations)):
-        score, distance = eval_formation(gamestate, all_formations[i], enemy_group)
-        if score > 1: # this value can be modified to change aggressiveness
-            attack_scores[i] = score
-            attack_distances[i] = distance
-        else:
-            regroup_scores[i] = score
-            regroup_distances[i] = distance
-            
-    # try to attack
-    if len(attack_distances) > 0:
-        best_formation = all_formations[min(attack_distances,key=attack_distances.get)]
-    # if no desirable attack option, regroup
-    else:
-        # get distances that are in a safe range
-        safe_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 1)
-        safe_regroup_distances = {i:distance for i,distance in regroup_distances.items()
-                                if distance > safe_distance}
-        #safe_regroup_scores = {i:score for i,score in regroup_scores.items() if i in safe_regroup_distances}
-        # if len(safe_regroup_scores) == 0:
-            # logging.debug('all_formations for %s = %s' % (str(my_group), str(all_formations)))
-            # logging.debug('regroup_scores = %s' % str(regroup_scores))
-            # logging.debug('regroup_distances = %s' % str(regroup_distances))
-            # logging.debug('safe_regroup_distances = %s' % str(safe_regroup_distances))
-            # logging.debug('safe_regroup_scores = %s' % str(safe_regroup_scores))
-            # logging.debug('safe_distance = %d' % safe_distance)
-        if len(safe_regroup_distances) > 0:
-            # safe distance possible, pick formation closer to enemy
-            best_formation = all_formations[min(safe_regroup_distances,key=safe_regroup_distances.get)]
-        else:
-            # no safe distance, pick one with highest score
-            best_score = max([value for key,value in regroup_scores.items()])
-            best_regroup_scores = {i:score for i,score in regroup_scores.items() if score==best_score}
-            # then pick one with furthest distance, hoping we'll escape some of them?
-            # but we're fucked here anyways
-            best_regroup_distances = {i:distance for i,distance in regroup_distances.items() if i in best_regroup_scores}
-            best_formation = all_formations[max(best_regroup_distances,key=best_regroup_distances.get)]
-    
-    logging.debug('best_formation for %s is %s' % (str(my_group), str(best_formation)))
-    # issue move order
-    for i in xrange(len(my_group)):
-        directions = gamestate.direction(my_group[i], best_formation[i]) + [None]
-        gamestate.issue_order((my_group[i], directions[0]))
-    
-def do_zone_combat_cheap(gamestate, zone):
-    'do no pruning, push all ants to be smallest value above average distance'
-    my_group, enemy_group = zone
-    if len(my_group) == 0 or len(enemy_group) == 0:
-        return
-        
-    score, target_distance = eval_formation(gamestate, my_group, enemy_group)
-    
-    #logging.debug('score, target_distance = %s, %s' % 
-    #    (str(score), str(target_distance)))
-    # be closer to enemy if feeling strong
-    if score > 1:
-        target_distance = 0
-    # be further away from enemy if not so
-    elif score <= 1:
-        target_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 1)
-    
-    # for each ant, figure out a position that is smallest above average
-    for ant in my_group:
-        possible_moves = [ant] + [n_loc for n_loc in gamestate.get_neighbour_locs(ant) 
-            if gamestate.is_passable(n_loc)]
-        move_distances = []
-        for move in possible_moves:
-            me_pair = [(move,e) for e in enemy_group]
-            me_distances = [gamestate.euclidean_distance2(m,e) for (m,e) in me_pair]
-            move_distances.append(min(me_distances))
-        # move to place closest to and greater than target_distance
-        preferred_distances = [distance for distance in move_distances if distance > target_distance]
-        if len(preferred_distances) > 0:
-            best_move = possible_moves[move_distances.index(min(preferred_distances))]
-        # all moves are below target distance, run for your lives!
-        else:
-            best_move = possible_moves[move_distances.index(max(move_distances))]
-        #logging.debug('possible_moves = %s' % str(possible_moves))
-        #logging.debug('move_distances = %s' % str(move_distances))
-        #logging.debug('preferred_distances = %s' % str(preferred_distances))
-        #logging.debug('best_move = %s' % str(best_move))
-        
-        # order
-        direction = gamestate.direction(ant, best_move)
-        gamestate.issue_order((ant, None if len(direction) == 0 else direction[0]))
-
 def do_zone_combat(gamestate, zone):
     'zone combat'
     my_group, enemy_group = zone
@@ -215,19 +105,29 @@ def do_zone_combat(gamestate, zone):
     logging.debug('score, target_distance = %s, %s' % (str(score), str(target_distance)))
     # if feeling strong, attack!
     if score > 1:
-        attack(gamestate, my_group, enemy_group)
+        attack_formation, attack_orders = simulate_attack(gamestate, my_group, enemy_group)
+        attack_score, attack_distance = eval_formation(gamestate, attack_formation, enemy_group)
+        # well, attack is a bad idea, try regroup instead, might make us more money
+        if attack_score < 1:
+            regroup(gamestate, my_group, enemy_group)
+        else:
+            # materialize attack orders
+            for order in attack_orders:
+                gamestate.issue_order(order)
     # if not, regroup at safe distance
     elif score <= 1:
         # only regroup for more than 1 ant
         if len(my_group) > 1:
-            regroup2(gamestate, my_group, enemy_group)
+            regroup(gamestate, my_group, enemy_group)
         
-def attack(gamestate, my_group, enemy_group):    
+def simulate_attack(gamestate, my_group, enemy_group):    
     # for each ant, figure out a position that is closer to enemy
+    attack_formation = list(my_group)
+    attack_orders = []
     for ant in my_group:
         possible_moves = [ant] + [n_loc for n_loc in gamestate.get_neighbour_locs(ant) 
-                                if gamestate.is_passable(n_loc)]
-        move_distances = []
+                                if gamestate.is_passable_override(n_loc, attack_formation, my_group)]
+        move_distances = []        
         for move in possible_moves:
             me_pair = [(move,e) for e in enemy_group]
             me_distances = [gamestate.euclidean_distance2(m,e) for (m,e) in me_pair]
@@ -236,69 +136,93 @@ def attack(gamestate, my_group, enemy_group):
         
         # order
         direction = gamestate.direction(ant, best_move) + [None]
-        order = (ant, direction[0])
-        gamestate.issue_order(order)
-        logging.debug('attack order: %s' % (str(order)))
+        attack_orders.append((ant, direction[0]))
+        attack_formation.remove(ant)
+        attack_formation.append(best_move)
+    #logging.debug('attack order: %s' % (str(attack_orders)))
         
-def regroup(gamestate, my_group, enemy_group):
-    'permutation selection'
-    # get all formations
-    # TODO: eliminate formations with loose formation (how to determine that?)
-    # for each formation, calculate its min_distance and average distance
-    # get rid of min_distance lower than safe range
-    # use the lowest average distance
-    pass
+    return attack_formation, attack_orders
     
-def regroup2(gamestate, my_group, enemy_group):
+def regroup(gamestate, my_group, enemy_group):
     'alternatively, find optimal places, and have each ant claim closest one, allow ants in distress to choose first'
     min_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 1)
-    move_table = {}
-    
-    # work on distressed ants
-    un_distressed_ants = []
+    regroup_formation = list(my_group)
+    # dict of source_loc => (order, target_loc), used for retract purpose
+    regroup_orders = {}
+
+    # work on ants from lowest distance to highest
+    ant_distances = []
     for my_ant in my_group:
-        distance = min([gamestate.euclidean_distance2(my_ant, enemy_ant) for enemy_ant in enemy_group])
-        if distance <= min_distance:
-            order = move_to_distance(gamestate, my_ant, enemy_group, min_distance, ignore_ant=True)
-            gamestate.issue_order(order)
-            logging.debug('regroup2 order: %s' % (str(order)))
-        else:
-            un_distressed_ants.append(my_ant)
-            
-    # work on non distressed ones
-    for my_ant in un_distressed_ants:
-        order = move_to_distance(gamestate, my_ant, enemy_group, min_distance, ignore_ant=False)
+        ant_distances.append(min([gamestate.euclidean_distance2(my_ant, enemy_ant) for enemy_ant in enemy_group]))
+        
+    my_ants_by_distance = [ant for distance, ant in sorted(zip(ant_distances, my_group))]
+    for my_ant in my_ants_by_distance:
+        resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, my_ants_by_distance, enemy_group, min_distance, [])
+        
+    for my_ant in my_ants_by_distance:
+        order, target_loc = regroup_orders[my_ant]
         gamestate.issue_order(order)
-        logging.debug('regroup2 order: %s' % (str(order)))
+        logging.debug('regroup order: %s' % (str(order)))
         
-        
-def move_to_distance(gamestate, my_ant, enemy_group, min_distance, ignore_ant):
-    'move an ant to closest spot to enmy_group, above min_distance'
-    if ignore_ant:
-        all_moves = [my_ant] + [n_loc for n_loc in gamestate.neighbour_table[my_ant]     
-                                if n_loc not in gamestate.water_list]
-    else:
-        all_moves = [my_ant] + [n_loc for n_loc in gamestate.neighbour_table[my_ant]     
-                                if gamestate.is_passable(n_loc)]
+def resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, my_ants_by_distance, enemy_group, min_distance, retracted_from):
+    'ugly recursive function to make sure all moves are valid, if this damn thing proves to be slow, its probably better to just rewrite using minimax'
+    # get all moves based on preference, move into the first available spot
+    moves_by_preference = get_moves_by_preference(gamestate, my_ant, regroup_formation, enemy_group, min_distance)
+    best_move = None
+    for move in moves_by_preference:
+        if gamestate.is_passable_override(move, regroup_formation, my_ants_by_distance): 
+            best_move = move
+            break
+
+    # if no best move was found, this means all the possible positions, including the ant's current location are taken
+    # we need to retract to previous ant and make it move else where    
+    retract_ant = None    
+    if best_move is None:
+        # find last order moved into any of my possible moves
+        for ant in reversed(my_ants_by_distance):
+            if ant in regroup_orders:
+                order, target_loc = regroup_orders[ant]
+                # valid retractable must be a possible move (moves_by_preference)
+                # AND it cannot be within retracted_from, to prevent infinite loop
+                if target_loc in moves_by_preference and target_loc not in retracted_from:
+                    # undo that one
+                    regroup_formation.append(ant)
+                    regroup_formation.remove(target_loc)
+                    del regroup_orders[ant]
+                    # do this one
+                    best_move = target_loc
+                    break
+
+    # convert to direction
+    directions = gamestate.direction(my_ant, best_move) + [None]
     
-    all_distances = []
+    # add the move 
+    regroup_formation.remove(my_ant)
+    regroup_formation.append(best_move)
+    regroup_orders[my_ant] = ((my_ant, directions[0]), best_move)
+    
+    # try do retracted one again, if any
+    if retract_ant is not None:
+        resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, my_ants_by_distance, enemy_group, min_distance, retracted_from + [best_move])
+    
+        
+def get_moves_by_preference(gamestate, my_ant, regroup_formation, enemy_group, min_distance):
+    'move an ant to closest spot to enmy_group, above min_distance'
+    all_moves = [my_ant] + [n_loc for n_loc in gamestate.neighbour_table[my_ant]     
+                            if gamestate.is_passable_ignore_ant(n_loc)]
+    
+    all_scores = []
     for move in all_moves:
         distance = min([gamestate.euclidean_distance2(move, enemy_ant) for enemy_ant in enemy_group])
-        all_distances.append(distance)
+        # score the moves based on following rules:
+        # 1, for move distance > min_distance, score = 1 / distance, the smaller distance the better the score
+        if distance > min_distance:
+            all_scores.append(float(1)/distance)
+        # 2, for move distance < min_distance, score = - distance, the greater distance the better the score
+        else:
+            all_scores.append(-distance)
     
     # sort the moves and distances together
-    sorted_list = sorted(zip(all_distances, all_moves))
+    sorted_score_moves = sorted(zip(all_scores, all_moves), reverse=True)
     
-    # use the lowest distance that's above min distance
-    target_move = None
-    for distance, move in sorted_list:
-        if distance > min_distance:
-            target_move = move
-            break
-    # if all moves are below min distance, use the highest distance
-    if target_move == None:
-        target_move = sorted_list[-1][1]
-        
-    # issue order
-    direction = gamestate.direction(my_ant, target_move) + [None]
-    return (my_ant, direction[0])
+    return [move for score, move in sorted_score_moves]

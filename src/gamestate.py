@@ -174,6 +174,8 @@ class GameState():
             # update map info (to avoid to ants moving into the same spot)
             self.map[newrow][newcol] = MY_ANT
             self.map[row][col] = LAND
+        else:
+            logging.debug('INVALID order: %s' % str(order))
     
     def finish_turn(self):
         'finish the turn by writing the go line'
@@ -225,6 +227,21 @@ class GameState():
         'true if not water or ant or food'
         row, col = loc
         return self.map[row][col] in (LAND, DEAD, HILL)
+        
+    def is_passable_override(self, loc, unpassable_override, passable_override):
+        'instead of simple passable, override with additional unpassable and passable locations'
+        'note that unpassable_override takes precedence over passable_override'
+        if loc in unpassable_override:
+            return False
+        elif loc in passable_override:
+            return True
+        else:
+            return self.is_passable(loc)
+        
+    def is_passable_ignore_ant(self, loc):
+        'true if not water or food'
+        row, col = loc
+        return self.map[row][col] not in (WATER, FOOD)
         
     def passable_directions(self, loc):
         'finds valid move from given location, based on passable'

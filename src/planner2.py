@@ -11,7 +11,7 @@ import math, path, numpy as np
 
 PLANNER_SCALE = 1
 
-class Planner():    
+class Planner():
     def __init__(self, gamestate):
         self.gamestate = gamestate
         self.enemy_hill_value = -PLANNER_SCALE * 100
@@ -21,8 +21,8 @@ class Planner():
         self.my_explorer_value = PLANNER_SCALE
         self.enemy_ant_value = 0
         self.enemy_ninja_value = -PLANNER_SCALE * 5
-        self.explore_value = 0
         self.winning_percentage = 0.0
+        self.task_locations = []
         
     def do_strategy_plan(self, influence):
         'called every turn to do planning'
@@ -51,11 +51,6 @@ class Planner():
         # enemy hill
         for hill_loc, owner in self.gamestate.enemy_hills():
             influence.map[hill_loc] += self.enemy_hill_value
-            
-        # exploration point
-        # for row in range(self.gamestate.strat_map.shape[0]):
-            # for col in range(self.gamestate.strat_map.shape[1]):
-                # influence.map[row*EXPLORE_GAP, col*EXPLORE_GAP] += self.gamestate.strat_map[row,col] * self.explore_value
 
     def update_task_influence(self, influence):
         'update dynamic goal values depending on current situation'
@@ -75,6 +70,6 @@ class Planner():
         # hill defense
         if len(self.gamestate.my_hills()) == 1:
             my_hill = self.gamestate.my_hills()[0]
-            for enemy_ninja in [ant for ant, owner in self.gamestate.enemy_ants() if self.gamestate.manhattan_distance(my_hill, ant) < 8]:
-                influence.map[my_hill] += self.enemy_ninja_value
+            for enemy_ninja in [ant for ant, owner in self.gamestate.enemy_ants() if self.gamestate.manhattan_distance(my_hill, ant) < 10]:
+                influence.map[enemy_ninja] += self.enemy_ninja_value
         

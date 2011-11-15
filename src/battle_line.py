@@ -169,6 +169,7 @@ def resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, m
     # get all moves based on preference, move into the first available spot
     moves_by_preference = get_moves_by_preference(gamestate, my_ant, regroup_formation, enemy_group, min_distance)
     best_move = None
+    regroup_formation.remove(my_ant)
     for move in moves_by_preference:
         if gamestate.is_passable_override(move, regroup_formation, my_ants_by_distance): 
             best_move = move
@@ -178,6 +179,7 @@ def resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, m
     # we need to retract to previous ant and make it move else where    
     retract_ant = None    
     if best_move is None:
+        logging.debug('move retraction logic triggered!')
         # find last order moved into any of my possible moves
         for ant in reversed(my_ants_by_distance):
             if ant in regroup_orders:
@@ -186,18 +188,28 @@ def resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, m
                 # AND it cannot be within retracted_from, to prevent infinite loop
                 if target_loc in moves_by_preference and target_loc not in retracted_from:
                     # undo that one
-                    regroup_formation.append(ant)
                     regroup_formation.remove(target_loc)
+                    regroup_formation.append(ant)
                     del regroup_orders[ant]
                     # do this one
                     best_move = target_loc
                     break
 
+    # some bug must've happened
+    if best_move is None:
+        logging.debug('move retraction failed!')
+        logging.debug('my_ant = %s' % str(my_ant))
+        logging.debug('regroup_orders = %s' % str(regroup_orders))
+        logging.debug('my_ants_by_distance = %s' % str(my_ants_by_distance))
+        logging.debug('regroup_formation = %s' % str(regroup_formation))
+        logging.debug('retracted_from = %s' % str(retracted_from))
+        logging.debug('moves_by_preference = %s' % str(moves_by_preference))
+        
+        
     # convert to direction
     directions = gamestate.direction(my_ant, best_move) + [None]
     
     # add the move 
-    regroup_formation.remove(my_ant)
     regroup_formation.append(best_move)
     regroup_orders[my_ant] = ((my_ant, directions[0]), best_move)
     

@@ -232,9 +232,10 @@ def get_moves_by_preference(gamestate, my_ant, regroup_formation, enemy_group, m
             all_scores.append(float(1)/distance)
         # 2, for move distance < min_distance, score = - distance, the greater distance the better the score
         else:
-            all_scores.append(-distance)
+            all_scores.append(float(1)/-distance)
     
     # sort the moves and distances together
     sorted_score_moves = sorted(zip(all_scores, all_moves), reverse=True)
     
+    logging.debug('sorted_score_moves = %s' % (str(sorted_score_moves)))
     return [move for score, move in sorted_score_moves]

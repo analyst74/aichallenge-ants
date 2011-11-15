@@ -146,7 +146,7 @@ class MyBot:
         'explore under enemies presence'
         safe_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, 1)
         nav_info = []
-        for loc in self.gamestate.neighbour_table[my_ant] + [my_ant]:
+        for loc in self.gamestate.passable_neighbours(my_ant) + [my_ant]:
             influence = self.strat_influence.map[loc]
             distance = min([self.gamestate.euclidean_distance2(loc, enemy_ant) for enemy_ant in enemy_ants])
             nav_info.append((influence, distance, loc))

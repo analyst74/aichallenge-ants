@@ -254,7 +254,7 @@ class GameState():
         return passable_directions
 
     def passable_neighbours(self, loc):
-        return [l for l in self.neighbour_table[loc] if self.is_passable(loc)]
+        return [l for l in self.neighbour_table[loc] if self.is_passable(l)]
         
     def destination(self, loc, direction):
         'calculate a new location given the direction and wrap correctly'

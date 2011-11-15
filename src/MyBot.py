@@ -117,7 +117,8 @@ class MyBot:
         if zones is not None:
             logging.debug('zones.count = %d' % len(zones))
             for zone in zones:
-                if len(zone[0]) > 0:
+                # only do combat for more than 1 friendlies
+                if len(zone[0]) > 1:
                     logging.debug('group combat loop for = %s' % str(zone))
                     logging.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
                     battle.do_zone_combat(self.gamestate, zone)
@@ -139,8 +140,8 @@ class MyBot:
         #logging.debug('my_ant = %s, loc_influences = %s' % (str(my_ant),str(loc_influences)))
         if len(loc_influences) > 0:
             best_directions = min(loc_influences, key=loc_influences.get)
-            logging.debug('moving %s to %s' % (str(my_ant), str(best_directions)))
             self.gamestate.issue_order((my_ant, best_directions))
+            logging.debug('moving %s' % str((my_ant, best_directions)))
     
     def avoidance_explore(self, my_ant, enemy_ants):
         'explore under enemies presence'
@@ -161,12 +162,13 @@ class MyBot:
                 break
         # if no safe move try largest distance
         if best_loc is None:
-            (influence, distance, loc) = sorted(nav_info, key=lambda x: x[1])[0]
+            (influence, distance, loc) = sorted(nav_info, key=lambda x: x[1], reverse=True)[0]
             best_loc = loc
             
         # do the move
         directions = self.gamestate.direction(my_ant, best_loc) + [None]
         self.gamestate.issue_order((my_ant, directions[0]))
+        logging.debug('moving %s' % str((my_ant, directions[0])))
         
     def issue_explore_task(self):
         'explore map based on influence'
@@ -175,6 +177,7 @@ class MyBot:
         # the ant_loc is an ant location tuple in (row, col) form
         avoidance_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, 2)
         for my_ant in self.gamestate.my_unmoved_ants():
+            logging.debug('explore task for %s' % str(my_ant))
             enemy_ants = [enemy_ant for enemy_ant, owner in self.gamestate.enemy_ants() 
                         if self.gamestate.euclidean_distance2(my_ant, enemy_ant) <= avoidance_distance]
             if len(enemy_ants) > 0:

@@ -97,7 +97,8 @@ def eval_formation(gamestate, my_formation, enemy_formation):
 def do_zone_combat(gamestate, zone):
     'zone combat'
     my_group, enemy_group = zone
-    if len(my_group) == 0 or len(enemy_group) == 0:
+    # only 1 of my ant, or no enemy, either case, means no combat
+    if len(my_group) < 2 or len(enemy_group) == 0:
         return
         
     score, target_distance = eval_formation(gamestate, my_group, enemy_group)
@@ -115,10 +116,8 @@ def do_zone_combat(gamestate, zone):
             for order in attack_orders:
                 gamestate.issue_order(order)
     # if not, regroup at safe distance
-    elif score <= 1:
-        # only regroup for more than 1 ant
-        if len(my_group) > 1:
-            regroup(gamestate, my_group, enemy_group)
+    else:
+        regroup(gamestate, my_group, enemy_group)
         
 def simulate_attack(gamestate, my_group, enemy_group):    
     # for each ant, figure out a position that is closer to enemy
@@ -229,10 +228,11 @@ def get_moves_by_preference(gamestate, my_ant, regroup_formation, enemy_group, m
         # score the moves based on following rules:
         # 1, for move distance > min_distance, score = 1 / distance, the smaller distance the better the score
         if distance > min_distance:
-            all_scores.append(float(1)/distance)
+            # distance+1 to avoid division by 0
+            all_scores.append(float(1)/(distance+1))
         # 2, for move distance < min_distance, score = - distance, the greater distance the better the score
         else:
-            all_scores.append(float(1)/-distance)
+            all_scores.append(float(1)/-(distance+1))
     
     # sort the moves and distances together
     sorted_score_moves = sorted(zip(all_scores, all_moves), reverse=True)

@@ -1,5 +1,20 @@
 Nov 14, 2011
-combat - one problem seems to be that my ant will always attack even if obstacles make standing still a better option, this should be remedied by 1-step look ahead idea from yesterday
+combat - one problem seems to be that my ant will always attack even if obstacles make standing still a better option
+    - this should be remedied by 1-step look ahead idea from yesterday
+exploration - when doing avoidance explore, would it be benefitial to get closer to enemy (set safe_distance to combat range) 
+    so it takes advantage of more cautious enemy who tries to stay safe, but might run into trouble of unnecessary loss against a careless bot
+exploration - food on the edge of viewable range is not being actively collected
+    - find out exactly how diffusion spreads over multiple passes, find out the optimal diffuse factor (or even linear diffusion instead of molecular model)
+combat - in winning condition, we're not pressing enemy hard enough so it can drag out to time out against a decent enemy
+    - increase spread (which will push more ants into enemy's way)
+        won't have immediate and easily measurable effect
+        have other benefits too
+        solution can be found by studying different diffusion characteristic
+    - increase concentration near enemy (increase fighter ant call for help)     
+        this would potentially have problem in not-winning conditions, ending up with too many fighter ants and too few exploration ants
+        one remedy is to dynamically adjust this value, based on fighter ants / total ants ratio
+            but still need to determine what is a good ratio
+    - establish task route from my hill to enemy hill/stronghold
 
 Nov 13, 2011
 combat - for each group, try to move them all in the same direction, through a voting system
@@ -9,7 +24,7 @@ combat - establish a move-table, with priority and secondary preferred locatoin 
         - better idea part 2: use formation permutation to find the optimal formation
 combat - do a 1 step look ahead, for following situations: 
     my group: press forward, or regroup behind attackradius+1
-    enemy group: press forward, stay put (we can't anticipate how enemy will regroup, and it is the same as stay put for practical purpose)
+    enemy group: press forward, stay put (we can't anticipate how enemy will regroup, and for practical purpose, it makes no different)
 
 Nov 11, 2011
 1, try/resarch on if we can do gaussian blur with mask array

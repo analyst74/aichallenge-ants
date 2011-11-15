@@ -74,7 +74,7 @@ class MyBot:
         
         # diffuse strategy influence
         logging.debug('strat_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))        
-        for i in xrange(10):
+        for i in xrange(20):
             if self.gamestate.time_remaining() <  self.combat_time + 100:
                 logging.debug('bailing diffuse after %d times' % (i))
                 break
@@ -125,6 +125,7 @@ class MyBot:
                 
                 # check if we still have time left to calculate more orders
                 if self.gamestate.time_remaining() < 50:
+                    logging.debug('bailing combat zone after %d times' % (i))
                     break
                 
         logging.debug('issue_combat_task.finish = ' + str(self.gamestate.time_remaining())) 

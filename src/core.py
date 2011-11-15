@@ -20,7 +20,7 @@ FOOD = -3
 WATER = -4
 
 DECAY_RATE = 0.9
-CUTOFF = 0.000001
+CUTOFF = 0.001
 EXPLORE_GAP = 10
 
 AIM = {'n': (-1, 0),

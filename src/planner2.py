@@ -60,11 +60,11 @@ class Planner():
     def update_task_influence(self, influence):
         'update dynamic goal values depending on current situation'
         # assess situation
-        my_tiles = np.fabs(influence.map) > CUTOFF
+        my_tile_count = len([v for v in np.ravel(np.fabs(influence.map)) if v > 0.01])
         total_tile_count = self.gamestate.cols * self.gamestate.rows
-        self.winning_percentage = float(len(my_tiles))/total_tile_count
+        self.winning_percentage = float(my_tile_count)/total_tile_count
         logging.debug('currently owning %d in %d tiles, ratio: %f' % 
-            (len(my_tiles), total_tile_count, self.winning_percentage))
+            (my_tile_count, total_tile_count, self.winning_percentage))
         logging.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
         logging.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
         

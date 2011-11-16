@@ -311,6 +311,7 @@ def run_game(game, botcmds, options):
         game_result = { 'error': error }
     else:
         scores = game.get_scores()
+        print (scores)
         game_result = {
             'challenge': game.__class__.__name__.lower(),
             'location': location,

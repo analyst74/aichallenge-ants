@@ -28,6 +28,7 @@ MAP_RENDER = PLAYER_ANT + HILL_ANT + PLAYER_HILL + MAP_OBJECT
 
 HILL_POINTS = 2
 RAZE_POINTS = -1
+KILL_POINTS = 1.0
 
 # possible directions an ant can move
 AIM = {'n': (-1, 0),
@@ -887,6 +888,10 @@ class Ants(Game):
         # kill ants and distribute score
         for ant in ants_to_kill:
             self.kill_ant(ant)
+            score = KILL_POINTS / len(nearby_enemies[ant])
+            for enemy in nearby_enemies[ant]:
+                self.score[enemy.owner] += score
+            self.score[ant.owner] -= KILL_POINTS
 
     def do_attack_closest(self):
         """ Iteratively kill neighboring groups of ants """
@@ -1343,6 +1348,9 @@ class Ants(Game):
             another in score.  Only consider bots with remaining hills.
             Those without hills will not be given the opportunity to overtake
         """
+        # if we are keeping track of kill points, rank cannot be stabilized
+        if KILL_POINTS > 0:
+            return False
         for player in range(self.num_players):
             if self.is_alive(player) and player in self.remaining_hills():
                 max_score = sum([HILL_POINTS for hill in self.hills.values()

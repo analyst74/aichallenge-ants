@@ -10,6 +10,8 @@ from influence5 import Influence
 import math, path, numpy as np
 
 PLANNER_SCALE = 1
+PRIORITY_HILL_DEFENSE = 10
+PRIORITY_HILL_RAZE = 10
 
 class Planner():
     def __init__(self, gamestate):
@@ -22,11 +24,12 @@ class Planner():
         self.enemy_ant_value = 0
         self.enemy_ninja_value = -PLANNER_SCALE * 5
         self.winning_percentage = 0.0
+        # task location is (priority, location)
         self.task_locations = []
         
     def do_strategy_plan(self, influence):
         'called every turn to do planning'
-        self.update_task_influence(influence)
+        self.update_strategy_influence(influence)
         self.update_general_influence(influence)
         
     def update_general_influence(self, influence):
@@ -52,7 +55,7 @@ class Planner():
         for hill_loc, owner in self.gamestate.enemy_hills():
             influence.map[hill_loc] += self.enemy_hill_value
 
-    def update_task_influence(self, influence):
+    def update_strategy_influence(self, influence):
         'update dynamic goal values depending on current situation'
         # assess situation
         my_tile_count = len([v for v in np.ravel(np.fabs(influence.map)) if v > 0.01])
@@ -67,9 +70,20 @@ class Planner():
         self.my_fighter_value = 0 - 1 - (self.winning_percentage / 0.3 % 1)
         self.enemy_ant_value = 0 - (self.winning_percentage / 0.3 % 1) * 2
         
-        # hill defense
+        # hill defense against ninja
         if len(self.gamestate.my_hills()) == 1:
             my_hill = self.gamestate.my_hills()[0]
-            for enemy_ninja in [ant for ant, owner in self.gamestate.enemy_ants() if self.gamestate.manhattan_distance(my_hill, ant) < 10]:
+            for enemy_ninja in [ant for ant, owner in self.gamestate.enemy_ants() 
+                                if self.gamestate.manhattan_distance(my_hill, ant) < 10]:
                 influence.map[enemy_ninja] += self.enemy_ninja_value
         
+    def do_special_task(self):
+        # hill defense against serious invasion
+        if len(self.gamestate.my_hills()) == 1:
+            my_hill = self.gamestate.my_hills()[0]
+            invasion_count = len([ant for ant, owner in self.gamestate.enemy_ants() 
+                                if self.gamestate.manhattan_distance(my_hill, ant) < 15])
+            if invasion_count > 5:
+                for my_ant in [ant for ant in self.gamestate.my_unmoved_ants()
+                                if self.gamestate.manhattan_distance(my_hill, ant) < 10]:
+                    self.gamestate.move_toward(my_ant, my_hill)

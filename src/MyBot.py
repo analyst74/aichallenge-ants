@@ -96,6 +96,10 @@ class MyBot:
         self.combat_time = max(self.combat_time_history)
         
         self.log_detail()
+        
+        # do any special tasks
+        self.planner.do_special_task()
+        
         # handle explorer
         self.issue_explore_task()
         logging.debug('endturn: my_ants count = %d, time_elapsed = %s' % (len(self.gamestate.my_ants()), self.gamestate.time_elapsed()))
@@ -116,7 +120,9 @@ class MyBot:
         
         if zones is not None:
             logging.debug('zones.count = %d' % len(zones))
+            i = 0
             for zone in zones:
+                i += 1
                 # only do combat for more than 1 friendlies
                 if len(zone[0]) > 1:
                     logging.debug('group combat loop for = %s' % str(zone))

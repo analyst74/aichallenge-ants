@@ -145,14 +145,15 @@ class GameState():
     
     def time_elapsed(self):
         return int(1000 * (time.time() - self.turn_start_time))
-    
-    def move_away(self, start_loc, avoid_loc):
-        'move to anywhere other than start_loc and avoid_loc'
-        all_directions = self.passable_directions(start_loc)
-        avoid_directions = self.direction(start_loc, avoid_loc)
-        valid_directions = [d for d in all_directions if d not in avoid_directions] + [None]
-                    
-        self.issue_order((start_loc, valid_directions[0]))
+            
+    def move_toward(self, ant_loc, target_loc):
+        'move toward the generao direction'
+        possible_moves = [ant_loc] + self.gamestate.passable_neighbours(ant_loc)
+        move_distances = [self.gamestate.manhattan_distance(move, target_loc) for move in possible_moves]
+        
+        best_distance, best_move = sorted(zip(move_distances, possible_moves))[0]
+        directions = self.direction(ant_loc, best_move) + [None]
+        self.issue_order((ant_loc, directions[0]))
     
     def issue_order(self, order):
         'issue an order by writing the proper ant location and direction'

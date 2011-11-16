@@ -38,6 +38,7 @@ class GameState():
         self.sqrt_table = {}
         self.neighbour_table = {}
         self.uc_distance_table = {}
+        self.winning_percentage = 0.0
 
     def setup(self, data):
         'parse initial input and setup starting game state'

@@ -23,7 +23,6 @@ class Planner():
         self.my_explorer_value = PLANNER_SCALE
         self.enemy_ant_value = 0
         self.enemy_ninja_value = -PLANNER_SCALE * 5
-        self.winning_percentage = 0.0
         # task location is (priority, location)
         self.task_locations = []
         
@@ -60,15 +59,15 @@ class Planner():
         # assess situation
         my_tile_count = len([v for v in np.ravel(np.fabs(influence.map)) if v > 0.01])
         total_tile_count = self.gamestate.cols * self.gamestate.rows
-        self.winning_percentage = float(my_tile_count)/total_tile_count
+        self.gamestate.winning_percentage = float(my_tile_count)/total_tile_count
         logging.debug('currently owning %d in %d tiles, ratio: %f' % 
-            (my_tile_count, total_tile_count, self.winning_percentage))
+            (my_tile_count, total_tile_count, self.gamestate.winning_percentage))
         logging.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
         logging.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
         
         # alter aggressiveness as situation changes
-        self.my_fighter_value = 0 - 1 - (self.winning_percentage / 0.3 % 1)
-        self.enemy_ant_value = 0 - (self.winning_percentage / 0.3 % 1) * 2
+        self.my_fighter_value = 0 - 1 - (self.gamestate.winning_percentage / 0.3 % 1)
+        self.enemy_ant_value = 0 - (self.gamestate.winning_percentage / 0.3 % 1) * 2
         
         # hill defense against ninja
         if len(self.gamestate.my_hills()) == 1:

@@ -104,18 +104,18 @@ def do_zone_combat(gamestate, zone):
     score, target_distance = eval_formation(gamestate, my_group, enemy_group)
     
     logging.debug('score, target_distance = %s, %s' % (str(score), str(target_distance)))
-    # if feeling strong, attack!
-    if score > 1:
-        attack_formation, attack_orders = simulate_attack(gamestate, my_group, enemy_group)
-        attack_score, attack_distance = eval_formation(gamestate, attack_formation, enemy_group)
-        # well, attack is a bad idea, try regroup instead, might make us more money
-        if attack_score < 1:
-            regroup(gamestate, my_group, enemy_group)
-        else:
-            # materialize attack orders
-            for order in attack_orders:
-                gamestate.issue_order(order)
-    # if not, regroup at safe distance
+    # confidence is increased if we're winning overall
+    if gamestate.winning_percentage > 0.4:
+        confidence_threshold = 0.8
+    else:
+        confidence_threshold = 1.0
+    attack_formation, attack_orders = simulate_attack(gamestate, my_group, enemy_group)
+    attack_score, attack_distance = eval_formation(gamestate, attack_formation, enemy_group)
+    # if attacking is a good idea, then go!
+    if attack_score > confidence_threshold:
+        # materialize attack orders
+        for order in attack_orders:
+            gamestate.issue_order(order)
     else:
         regroup(gamestate, my_group, enemy_group)
         

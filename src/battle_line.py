@@ -101,23 +101,33 @@ def do_zone_combat(gamestate, zone):
     if len(my_group) < 2 or len(enemy_group) == 0:
         return
         
-    score, target_distance = eval_formation(gamestate, my_group, enemy_group)
+    # instead of evaluating enemy_group, try enemy_group advance
+    enemy_attack_formation, enemy_attack_orders = simulate_attack(gamestate, enemy_group, my_group)
+       
+    # TODO: re work this logic to be more elegant (but should have similar behaviour)
+    # then try following 3 things, in that order:
+    # 1, try to move into attackradius - 1 to attackradius - 2 (that's closest we can get, both we and enemy attack)
+    # 2, try move into attackradius to attackradius - 1 (we regroup, enemy attack, we'll still fight)
+    # 3, try move into attackradius + 1 to attackradius (we retreat, enemy attack, no fight)
+    
+    score, target_distance = eval_formation(gamestate, my_group, enemy_attack_formation)
     
     logging.debug('score, target_distance = %s, %s' % (str(score), str(target_distance)))
     # confidence is increased if we're winning overall
-    if gamestate.winning_percentage > 0.4:
+    if gamestate.winning_percentage > 0.5:
         confidence_threshold = 0.8
     else:
         confidence_threshold = 1.0
-    attack_formation, attack_orders = simulate_attack(gamestate, my_group, enemy_group)
-    attack_score, attack_distance = eval_formation(gamestate, attack_formation, enemy_group)
+    attack_formation, attack_orders = simulate_attack(gamestate, my_group, enemy_attack_formation)
+    attack_score, attack_distance = eval_formation(gamestate, attack_formation, enemy_attack_formation)
+    logging.debug('attack_score, attack_distance = %f, %d' % (attack_score, attack_distance))
     # if attacking is a good idea, then go!
     if attack_score > confidence_threshold:
         # materialize attack orders
         for order in attack_orders:
             gamestate.issue_order(order)
     else:
-        regroup(gamestate, my_group, enemy_group)
+        regroup(gamestate, my_group, enemy_attack_formation)
         
 def simulate_attack(gamestate, my_group, enemy_group):    
     # for each ant, figure out a position that is closer to enemy
@@ -138,7 +148,7 @@ def simulate_attack(gamestate, my_group, enemy_group):
         attack_orders.append((ant, direction[0]))
         attack_formation.remove(ant)
         attack_formation.append(best_move)
-    #logging.debug('attack order: %s' % (str(attack_orders)))
+    logging.debug('attack order: %s' % (str(attack_orders)))
         
     return attack_formation, attack_orders
     

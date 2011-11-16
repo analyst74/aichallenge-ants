@@ -22,7 +22,7 @@ class Planner():
         self.my_fighter_value = -PLANNER_SCALE * 0.5
         self.my_explorer_value = PLANNER_SCALE
         self.enemy_ant_value = 0
-        self.enemy_ninja_value = -PLANNER_SCALE * 5
+        self.enemy_ninja_value = -PLANNER_SCALE * 10
         # task location is (priority, location)
         self.task_locations = []
         
@@ -74,7 +74,9 @@ class Planner():
             my_hill = self.gamestate.my_hills()[0]
             for enemy_ninja in [ant for ant, owner in self.gamestate.enemy_ants() 
                                 if self.gamestate.manhattan_distance(my_hill, ant) < 10]:
-                influence.map[enemy_ninja] += self.enemy_ninja_value
+                # send ants to intercept, this will cause ant on ther far side of hill also *get* it
+                interception_loc = tuple([x - (x - y)/2 for x, y in zip(my_hill, enemy_ninja)])
+                influence.map[interception_loc] += self.enemy_ninja_value
         
     def do_special_task(self):
         # hill defense against serious invasion

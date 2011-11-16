@@ -148,12 +148,13 @@ class GameState():
             
     def move_toward(self, ant_loc, target_loc):
         'move toward the generao direction'
-        possible_moves = [ant_loc] + self.gamestate.passable_neighbours(ant_loc)
-        move_distances = [self.gamestate.manhattan_distance(move, target_loc) for move in possible_moves]
+        possible_moves = [ant_loc] + self.passable_neighbours(ant_loc)
+        move_distances = [self.manhattan_distance(move, target_loc) for move in possible_moves]
         
         best_distance, best_move = sorted(zip(move_distances, possible_moves))[0]
-        directions = self.direction(ant_loc, best_move) + [None]
-        self.issue_order((ant_loc, directions[0]))
+        directions = self.direction(ant_loc, best_move)
+        if len(directions) > 0:
+            self.issue_order((ant_loc, directions[0]))
     
     def issue_order(self, order):
         'issue an order by writing the proper ant location and direction'

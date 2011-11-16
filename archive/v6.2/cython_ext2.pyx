@@ -4,7 +4,6 @@
 # Author: Bill Y
 # License: all your base are belong to us
 #
-# cython: profile=True
 
 import numpy as np
 cimport numpy as np

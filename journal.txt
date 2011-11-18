@@ -1,3 +1,6 @@
+Nov 18, 2011
+strategy/combat - how to deal with an aggressive enemy?
+
 Nov 15, 2011
 combat - we can find all possible formations through some sort of ML learning on the spatial data, set optimal points for each *enemy* state, and only calculate at run time how to achieve a favourable state
 combat - increase offensiveness when we have more friends close by

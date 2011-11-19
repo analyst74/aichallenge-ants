@@ -1,6 +1,10 @@
 Nov 18, 2011
-strategy - use multiple influence map to deal with the canceling out effect of mixed influence map
-strategy - 
+strategy - use multiple influence map to prioritize certain tasks (hill defense/attack, maybe something else)
+strategy - depends on number of my ants and hills, use influence to keep some ants around the hill
+strategy/combat - how to deal with an aggressive enemy?
+    one way to deal with it is to implement that new combat logic. 
+    where ants will prefer to stay at attack+1 distance when of equal strength, so it will not yield to an 
+	overly aggressive opponent
 
 Nov 15, 2011
 combat - we can find all possible formations through some sort of ML learning on the spatial data, set optimal points for each *enemy* state, and only calculate at run time how to achieve a favourable state

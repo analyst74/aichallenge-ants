@@ -81,13 +81,13 @@ def eval_formation(gamestate, my_formation, enemy_formation):
     # find the min_distance between our ants
     all_distances = [gamestate.euclidean_distance2(m,e) for m in my_formation for e in enemy_formation]
     min_distance = min(all_distances)
-    # if there is no fighting, count the ants closest (loosely speaking) to enemies
+    # if there is no fighting, only count the front line
     if min_distance > gamestate.attackradius2:
         min_distance_fuz = gamestate.euclidean_distance_add(min_distance, 0.4)
         #logging.debug('min_distance_fuz = %f' % min_distance_fuz)
         # find out fighting pairs by getting all_pairs that has min_distance
         fighting_pairs = [all_pairs[i] for i,x in enumerate(all_distances) if x <= min_distance_fuz]
-    # if there is fighting, just count all fighting ants
+    # if there is fighting, count all fighting ants (which could possibly include second line)
     else:
         fighting_pairs = [all_pairs[i] for i,x in enumerate(all_distances) if x <= gamestate.attackradius2]
         
@@ -103,24 +103,26 @@ def eval_formation(gamestate, my_formation, enemy_formation):
 def do_zone_combat(gamestate, zone):
     'zone combat'
     my_group, enemy_group = zone
-    # either group is empty, invalid zone
-    if len(my_group) == 0 or len(enemy_group) == 0:
-        return
-    # if just 1 of my ant 1 of enemy ant, no combat (will fall into avoidance exploration mode)
-    if len(my_group) == len(enemy_group) == 1:
+    # only 1 of my ant, or no enemy, either case, means no combat
+    if len(my_group) < 2 or len(enemy_group) == 0:
         return
         
-    # we minimax on enemy stayed put or attacked (we're probably missing if enemy regrouped, but that's hard to predict)
-    enemy_attack_formation, enemy_attack_orders = simulate_attack(gamestate, enemy_group, my_group)
-       
-    # TODO: re work this logic to be more elegant (but should have similar behaviour)
-    # then try following 3 things, in that order:
-    # 1, try to move into attackradius - 1 to attackradius - 2 (that's closest we can get, both we and enemy attack)
-    # 2, try move into attackradius to attackradius - 1 (we regroup, enemy attack, we'll still fight)
-    # 3, try move into attackradius + 1 to attackradius (we retreat, enemy attack, no fight)
+    score, cur_min_distance = eval_formation(gamestate, my_group, enemy_group)
+    # then try following 3, in that order:
+    # for each of our own formation, 
+    # 1, try to move to attackradius - 1, definitely combat resolution
+    #   this has to have score > 1, meaning we are winning
+    #   or == 1, if our direct fighters is less than half of the whole group 
+    # 2, try to move to attackradius, possible combat resolution (if enemy attacks)
+    #   this has to have score > 1, meaning we are winning
+    #   or == 1, if our direct fighters is less than half of the whole group 
+    # 3, try move to attackradius + 1, regroup, no combat
     
-    score, target_distance = eval_formation(gamestate, my_group, enemy_group)
+def generate_formation(gamestate, my_group, enemy_group, desired_distance):
+    'generate new formation from my_group, moving toward desired_distance, but NEVER > desired_distance'
     
+    
+def old_zone_combat(gamestate, zone):
     logging.debug('score, target_distance = %s, %s' % (str(score), str(target_distance)))
     # confidence is increased if we're winning overall
     if gamestate.winning_percentage > 0.65:

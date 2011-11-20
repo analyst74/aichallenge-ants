@@ -80,20 +80,19 @@ def bfs_findenemy(gamestate, start_loc, distance_limit):
                         
     return False
 
-
-def astar(gamestate, start, goal, limit):
+def astar(gamestate, start, goal, length_limit):
     'a star limit by given depth'
     #en.wikipedia.org/wiki/A*_search_algorithm
-    
+        
     def reconstrct_path(came_from, current_node):
         if current_node in came_from:
-            p = reconstruct_path(came_from, came_from[current_node])
+            p = reconstrct_path(came_from, came_from[current_node])
             return p + [current_node]
         else:
             return [current_node]
 
-    openset = (start)
-    closedset = ()
+    openset = []
+    closedset = []
     came_from = {}
     
     # cost from start to best known path
@@ -102,13 +101,20 @@ def astar(gamestate, start, goal, limit):
     # estimated total
     f_score = {start: g_score[start] + h_score[start]} 
     
+    openset.append(start)
     while len(openset) > 0:
-        current = openset[0]
+        #logging.debug('openset = %s' % str(openset))
+        current = min(openset, key=lambda loc:f_score[loc])
+        # stop when we reached goal or the path length limit
+        #logging.debug('current = %s' % str(current))
+        #logging.debug('goal = %s' % str(goal))
         if current == goal:
-            return reconstrct_path(came_from, cam_from[goal])
+            return reconstrct_path(came_from, goal)
+        elif g_score[current] > length_limit:
+            return reconstrct_path(came_from, current)
         
         openset.remove(current)
-        closedset.add(current)
+        closedset.append(current)
         for neighbour in [n_loc for n_loc in gamestate.neighbour_table[current] 
                         if n_loc not in gamestate.water_list]:
             if neighbour in closedset:
@@ -116,12 +122,12 @@ def astar(gamestate, start, goal, limit):
             tentative_g_score = g_score[current] + 1
             
             if neighbour not in openset:
-                openset.add(neighbour)
-                tentative_is_better = true
+                openset.append(neighbour)
+                tentative_is_better = True
             elif tentative_g_score < g_score[neighbour]:
-                tentative_is_better = true
+                tentative_is_better = True
             else:
-                tentative_is_better = false
+                tentative_is_better = False
                 
             if tentative_is_better:
                 came_from[neighbour] = current

@@ -28,7 +28,7 @@ MAP_RENDER = PLAYER_ANT + HILL_ANT + PLAYER_HILL + MAP_OBJECT
 
 HILL_POINTS = 2
 RAZE_POINTS = -1
-KILL_POINTS = 1.0
+KILL_POINTS = 0
 
 # possible directions an ant can move
 AIM = {'n': (-1, 0),

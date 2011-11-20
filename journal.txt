@@ -1,3 +1,7 @@
+Nov 19, 2011
+strategy - keep track of spotted enemy
+strategy - maybe I should really look into this symmetry stuff?
+
 Nov 18, 2011
 strategy - use multiple influence map to prioritize certain tasks (hill defense/attack, maybe something else)
 strategy - depends on number of my ants and hills, use influence to keep some ants around the hill

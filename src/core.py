@@ -21,7 +21,7 @@ WATER = -4
 
 DECAY_RATE = 0.9
 CUTOFF = 0.001
-EXPLORE_GAP = 10
+EXPLORE_GAP = 20
 
 AIM = {'n': (-1, 0),
        'e': (0, 1),

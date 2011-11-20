@@ -2,7 +2,7 @@
 *.pyc
 *.pyd
 game_logs
-debug.log
+*.log
 cython*.c
 src/build
 archive/*/build

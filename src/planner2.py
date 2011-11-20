@@ -27,7 +27,7 @@ class Planner():
         self.strat_route = None
         self.strat_map = None
         
-    def do_strategy_plan(self, influence):
+    def do_explore_plan(self, influence):
         'called every turn to do planning'
         self.update_strategy_influence(influence)
         self.update_general_influence(influence)
@@ -61,10 +61,10 @@ class Planner():
         my_tile_count = len([v for v in np.ravel(np.fabs(influence.map)) if v > 0.01])
         total_tile_count = self.gamestate.cols * self.gamestate.rows
         self.gamestate.winning_percentage = float(my_tile_count)/total_tile_count
-        logging.debug('currently owning %d in %d tiles, ratio: %f' % 
+        debug_logger.debug('currently owning %d in %d tiles, ratio: %f' % 
             (my_tile_count, total_tile_count, self.gamestate.winning_percentage))
-        logging.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
-        logging.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
+        debug_logger.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
+        debug_logger.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
         
         # alter aggressiveness as situation changes
         self.my_fighter_value = 0 - 1 - (self.gamestate.winning_percentage / 0.3 % 1)

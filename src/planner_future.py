@@ -61,10 +61,10 @@ class Planner():
         my_tile_count = len([v for v in np.ravel(np.fabs(influence.map)) if v > 0.01])
         total_tile_count = self.gamestate.cols * self.gamestate.rows
         self.gamestate.winning_percentage = float(my_tile_count)/total_tile_count
-        logging.debug('currently owning %d in %d tiles, ratio: %f' % 
+        debug_logger.debug('currently owning %d in %d tiles, ratio: %f' % 
             (my_tile_count, total_tile_count, self.gamestate.winning_percentage))
-        logging.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
-        logging.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
+        debug_logger.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
+        debug_logger.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
         
         # alter aggressiveness as situation changes
         self.my_fighter_value = 0 - 1 - (self.gamestate.winning_percentage / 0.3 % 1)
@@ -92,12 +92,12 @@ class Planner():
                     
     def do_strategic_movement(self, influence_map):
         'move ants by previously established route'
-        logging.debug('do_strategic_movement start: %s' % str(self.gamestate.time_remaining())) 
+        debug_logger.debug('do_strategic_movement start: %s' % str(self.gamestate.time_remaining())) 
         self.create_strategic_movement(influence_map)
         if self.strat_map is not None:
             for my_ant in self.gamestate.my_unmoved_ants():
                 if self.strat_map[my_ant] < 0:
-                    logging.debug('found ant %s on the train' % str(my_ant))
+                    debug_logger.debug('found ant %s on the train' % str(my_ant))
                     moves = [my_ant] + self.gamestate.passable_neighbours(my_ant)
                     route_values = [self.strat_map[n_loc] for n_loc in moves]
                     sorted_move_and_value = sorted(zip(route_values, moves))
@@ -106,7 +106,7 @@ class Planner():
                     # the train when it gets too crowded
                     directions = self.gamestate.direction(my_ant, preferred_move)
                     if len(directions) > 0:
-                        logging.debug('strategic move: %s => %s' % (str(my_ant), directions[0]))
+                        debug_logger.debug('strategic move: %s => %s' % (str(my_ant), directions[0]))
                         self.gamestate.issue_order((my_ant, directions[0]))
                     
     def create_strategic_movement(self, influence_map):
@@ -128,7 +128,7 @@ class Planner():
                 get_new_route = False                
         
         if get_new_route:
-            logging.debug('create_strategic_movement getting new route: %s' % str(self.gamestate.time_remaining())) 
+            debug_logger.debug('create_strategic_movement getting new route: %s' % str(self.gamestate.time_remaining())) 
             start_loc = np.unravel_index(influence_map.argmax(), influence_map.shape)
             initial_inf = -2
                     
@@ -147,7 +147,7 @@ class Planner():
                     region_to_explore = min(unexplored_regions, key = lambda region: self.gamestate.manhattan_distance(start_region, region))
                     target_loc = (region_to_explore[0] * EXPLORE_GAP, region_to_explore[1] * EXPLORE_GAP)
         else:
-            logging.debug('create_strategic_movement extend current route: %s' % str(self.gamestate.time_remaining())) 
+            debug_logger.debug('create_strategic_movement extend current route: %s' % str(self.gamestate.time_remaining())) 
             start_loc = existing_route[-1]
             initial_inf = self.strat_map[start_loc]
         
@@ -171,5 +171,5 @@ class Planner():
         self.strat_route = (route, target_loc)
         self.strat_map = new_strat_map 
         
-        logging.debug('turn %s, strategic move created, start=>target = %s => %s' % (str(self.gamestate.current_turn), str(start_loc), str(target_loc)))
-        logging.debug(self.strat_route)
+        debug_logger.debug('turn %s, strategic move created, start=>target = %s => %s' % (str(self.gamestate.current_turn), str(start_loc), str(target_loc)))
+        debug_logger.debug(self.strat_route)

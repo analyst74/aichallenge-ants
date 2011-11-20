@@ -59,3 +59,20 @@ cdef inline destination(int row, int col, char* direction, int rows, int cols):
     d_row, d_col = AIM[direction]
     
     return (row + d_row) % rows, (col + d_col) % cols
+    
+
+def merge_linear_map(np.ndarray[DTYPEF_t, ndim=3] np_temp_maps, np.ndarray[DTYPEF_t, ndim=2] inf_map):
+    #for (row,col) in [(r,c) for r in range(rows) for c in range(cols)]:
+    cdef int rows = inf_map.shape[0]
+    cdef int cols = inf_map.shape[1]
+    cdef int row = 0
+    cdef int col = 0
+    cdef np.ndarray[DTYPEF_t, ndim=1] buffer
+    for row in range(rows):
+        for col in range(cols):
+            buffer = np_temp_maps[:,row,col]
+            inf_map[row,col] = min(buffer) + 0.001 * sum(buffer)
+            # loc_values = []
+            # for temp_map in temp_maps:
+                # loc_values.append(temp_map[row,col])
+            # inf_map[row,col] = min(loc_values) + 0.001 * sum(loc_values)

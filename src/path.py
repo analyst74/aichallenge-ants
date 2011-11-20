@@ -5,10 +5,11 @@
 # License: all your base are belong to us
 
 from core import *
+from collections import defaultdict, deque
 
 def bfs_findtask(gamestate, influence, start_loc, counter_limit):
     'find lowest influence location from start_loc, return the path'
-    #logging.debug('bfs.start for %s' % str(start_locs))
+    #debug_logger.debug('bfs.start for %s' % str(start_locs))
     # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
     lowest_inf = influence.map[start_loc]
     lowest_loc = start_loc
@@ -79,6 +80,9 @@ def bfs_findenemy(gamestate, start_loc, distance_limit):
                         return True
                         
     return False
+    
+def create_linear_influence(gamestate, start_loc, limit, existing_map):
+    'expandd existing linear influence map from start_loc, up to limit nodes'
 
 def astar(gamestate, start, goal, length_limit):
     'a star limit by given depth'
@@ -103,11 +107,11 @@ def astar(gamestate, start, goal, length_limit):
     
     openset.append(start)
     while len(openset) > 0:
-        #logging.debug('openset = %s' % str(openset))
+        #debug_logger.debug('openset = %s' % str(openset))
         current = min(openset, key=lambda loc:f_score[loc])
         # stop when we reached goal or the path length limit
-        #logging.debug('current = %s' % str(current))
-        #logging.debug('goal = %s' % str(goal))
+        #debug_logger.debug('current = %s' % str(current))
+        #debug_logger.debug('goal = %s' % str(goal))
         if current == goal:
             return reconstrct_path(came_from, goal)
         elif g_score[current] > length_limit:

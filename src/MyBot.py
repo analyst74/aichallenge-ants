@@ -7,7 +7,8 @@
 from core import *
 from gamestate import GameState
 from influence5 import Influence
-from planner2 import Planner
+from linear_influence import LinearInfluence
+from planner3 import Planner
 from random import choice
 from collections import deque
 
@@ -31,14 +32,18 @@ class MyBot:
     # after the bot has received the game settings
     def do_setup(self):
         # initialize data structures after learning the game settings
+        self.food_influence = LinearInfluence(self.gamestate)
+        self.raze_influence = LinearInfluence(self.gamestate)
+        self.defense_influence = LinearInfluence(self.gamestate)
         self.explore_influence = Influence(self.gamestate)
         self.planner = Planner(self.gamestate)
     
     def log_turn(self, turn_no):
-        logging.debug('turn ' + str(self.gamestate.current_turn))
-        logging.debug('self.diffuse_time = %d' % self.diffuse_time)
-        logging.debug('self.combat_time_history = %s' % str(self.combat_time_history))
-        logging.debug('self.combat_time = %s' % self.combat_time)
+        debug_logger.debug('turn ' + str(self.gamestate.current_turn))
+        perf_logger.debug('turn ' + str(self.gamestate.current_turn))
+        perf_logger.debug('self.diffuse_time = %d' % self.diffuse_time)
+        perf_logger.debug('self.combat_time_history = %s' % str(self.combat_time_history))
+        perf_logger.debug('self.combat_time = %s' % self.combat_time)
             
     def log_detail(self):
         if DETAIL_LOG and os.path.isdir('pickle'):# and int(self.gamestate.current_turn) % 10 == 0:
@@ -56,32 +61,6 @@ class MyBot:
     def do_turn(self):        
         # detailed logging
         self.log_turn(self.gamestate.current_turn)
-        
-        # decay strategy influence
-        #logging.debug('explore_influence.decay().start = %s' % str(self.gamestate.time_remaining())) 
-        self.explore_influence.decay(DECAY_RATE)
-        #self.explore_influence = Influence(self.gamestate)
-        #logging.debug('explore_influence.decay().finish = %s' % str(self.gamestate.time_remaining())) 
-        # use planner to set new influence
-        logging.debug('self.planner.do_strategy_plan.start = %s' % str(self.gamestate.time_remaining()))
-        self.planner.do_strategy_plan(self.explore_influence)
-        # for row in range(self.explore_influence.map.shape[0]):
-            # for col in range(self.explore_influence.map.shape[1]):
-                # if math.fabs(self.explore_influence.map[row,col]):
-                    # logging.debug('%d, %d = %f' % (row, col, self.explore_influence.map[row,col]))
-        
-        # diffuse strategy influence
-        logging.debug('explore_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))        
-        for i in xrange(20):
-            if self.gamestate.time_remaining() <  self.combat_time + 100:
-                logging.debug('bailing diffuse after %d times' % (i))
-                break
-            diffuse_start = self.gamestate.time_remaining()
-            self.explore_influence.diffuse()
-            diffuse_duration = diffuse_start - self.gamestate.time_remaining()
-            self.diffuse_time = max([diffuse_duration, self.diffuse_time])
-        self.diffuse_time -= 1
-        logging.debug('explore_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 
 
         # razing nearby hill takes precedence
         self.raze_override()
@@ -91,18 +70,43 @@ class MyBot:
         self.issue_combat_task()
         self.combat_time_history.append(combat_start - self.gamestate.time_remaining())
         self.combat_time_history.popleft()
-        self.combat_time = max(self.combat_time_history)
+        self.combat_time = max(self.combat_time_history)        
+        
+        # use planner to set new influence
+        perf_logger.debug('self.update_influences.start = %s' % str(self.gamestate.time_remaining()))
+        self.planner.update_food_influence(self.food_influence)
+        perf_logger.debug('self.update_food_influence.finish = %s' % str(self.gamestate.time_remaining()))     
+        self.planner.update_raze_influence(self.raze_influence)
+        perf_logger.debug('self.update_raze_influence.finish = %s' % str(self.gamestate.time_remaining()))     
+        self.planner.update_defense_influence(self.defense_influence)
+        perf_logger.debug('self.update_defense_influence.finish = %s' % str(self.gamestate.time_remaining()))     
+        self.planner.update_explore_influence(self.explore_influence)
+        perf_logger.debug('self.update_explore_influence.finish = %s' % str(self.gamestate.time_remaining()))        
+        
+        # decay strategy influence
+        self.explore_influence.decay(DECAY_RATE)
+        
+        # diffuse explore_influence, which is the only one using molecular diffusion
+        perf_logger.debug('explore_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))        
+        for i in xrange(30):
+            if self.gamestate.time_remaining() < self.diffuse_time + 50:
+                perf_logger.debug('bailing diffuse after %d times' % (i))
+                break
+            diffuse_start = self.gamestate.time_remaining()
+            self.explore_influence.diffuse()
+            diffuse_duration = diffuse_start - self.gamestate.time_remaining()
+            self.diffuse_time = max([diffuse_duration, self.diffuse_time])
+        self.diffuse_time -= 1
+        perf_logger.debug('explore_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 
         
         self.log_detail()
         
-        # do any special tasks
-        self.planner.do_special_task()
-        
-        # handle explorer
+        # avoidance explorer
         self.avoidance_explore()
-        #self.planner.do_strategic_movement(self.explore_influence.map)
+        
+        # normal explore
         self.normal_explore()
-        logging.debug('endturn: my_ants count = %d, time_elapsed = %s' % (len(self.gamestate.my_ants()), self.gamestate.time_elapsed()))
+        perf_logger.debug('endturn: my_ants count = %d, time_elapsed = %s' % (len(self.gamestate.my_ants()), self.gamestate.time_elapsed()))
 
     def raze_override(self):
         'razing close-by hill takes precedence over combat'
@@ -114,43 +118,80 @@ class MyBot:
         
     def issue_combat_task(self):
         'combat logic'
-        logging.debug('issue_combat_task.start = %s' % str(self.gamestate.time_remaining())) 
+        perf_logger.debug('issue_combat_task.start = %s' % str(self.gamestate.time_remaining())) 
         zones = battle.get_combat_zones(self.gamestate)
-        logging.debug('get_combat_zones.finish = %s' % str(self.gamestate.time_remaining())) 
+        perf_logger.debug('get_combat_zones.finish = %s' % str(self.gamestate.time_remaining())) 
         
         if zones is not None:
-            logging.debug('zones.count = %d' % len(zones))
+            debug_logger.debug('zones.count = %d' % len(zones))
             i = 0
             for zone in zones:
                 i += 1
-                # only do combat for more than 1 friendlies
-                if len(zone[0]) > 1:
-                    logging.debug('group combat loop for = %s' % str(zone))
-                    logging.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
-                    battle.do_zone_combat(self.gamestate, zone)
-                    logging.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
+                # debug_logger.debug('group combat loop for = %s' % str(zone))
+                # perf_logger.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
+                battle.do_zone_combat(self.gamestate, zone)
+                # perf_logger.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
                 
                 # check if we still have time left to calculate more orders
-                if self.gamestate.time_remaining() < 50:
-                    logging.debug('bailing combat zone after %d times' % (i))
+                if self.gamestate.time_remaining() < 100:
+                    debug_logger.debug('bailing combat zone after %d times' % (i))
                     break
                 
-        logging.debug('issue_combat_task.finish = ' + str(self.gamestate.time_remaining())) 
+        perf_logger.debug('issue_combat_task.finish = ' + str(self.gamestate.time_remaining())) 
     
+    def get_desired_moves(self, ant):
+        desired_moves = []
+        # food
+        desired_moves = self.get_desired_move_from_linear_influence(ant, self.food_influence)
+        debug_logger.debug('desired_moves.food = %s' % str(desired_moves))
+        
+        # defend hill
+        if len(desired_moves) == 0:
+            desired_moves = self.get_desired_move_from_linear_influence(ant, self.defense_influence)
+            debug_logger.debug('desired_moves.defense = %s' % str(desired_moves))
+        
+        # raze hill
+        if len(desired_moves) == 0:
+            desired_moves = self.get_desired_move_from_linear_influence(ant, self.raze_influence)
+            debug_logger.debug('desired_moves.raze = %s' % str(desired_moves))
+            
+        # explore
+        if len(desired_moves) == 0:
+            desired_moves = self.get_desired_move_from_molecular_influence(ant, self.explore_influence)
+            debug_logger.debug('desired_moves.explore = %s' % str(desired_moves))
+            
+        return desired_moves
+
+    def get_desired_move_from_molecular_influence(self, ant, influence):
+        desired_moves = []
+        neighbours_and_influences = sorted([(influence.map[loc], loc) for loc in [ant] + self.gamestate.passable_neighbours(ant)])
+        debug_logger.debug('neighbours_and_influences = %s' % str(neighbours_and_influences))
+        for inf, n_loc in neighbours_and_influences:
+            desired_moves.append(n_loc)
+            
+        return desired_moves
+    
+    def get_desired_move_from_linear_influence(self, ant, influence):
+        desired_moves = []
+        if influence.map[ant] != 0:
+            neighbours_and_influences = sorted([(influence.map[loc], loc) for loc in [ant] + self.gamestate.passable_neighbours(ant)])
+            debug_logger.debug('neighbours_and_influences = %s' % str(neighbours_and_influences))
+            for inf, n_loc in neighbours_and_influences:
+                if inf < influence.map[ant]:
+                    desired_moves.append(n_loc)
+            
+        return desired_moves
+        
     def normal_explore(self):
         'only concern influence'
         for my_ant in self.gamestate.my_unmoved_ants():
-            logging.debug('normal explore task for %s' % str(my_ant))
-            
-            loc_influences = {}
-            for d in self.gamestate.passable_directions(my_ant):
-                loc_influences[d] = self.explore_influence.map[self.gamestate.destination(my_ant, d)]
-                
-            #logging.debug('my_ant = %s, loc_influences = %s' % (str(my_ant),str(loc_influences)))
-            if len(loc_influences) > 0:
-                best_directions = min(loc_influences, key=loc_influences.get)
-                self.gamestate.issue_order((my_ant, best_directions))
-                logging.debug('moving %s' % str((my_ant, best_directions)))
+            debug_logger.debug('normal explore task for %s' % str(my_ant))
+            desired_moves = self.get_desired_moves(my_ant)
+            if len(desired_moves) > 0:
+                move = desired_moves[0]
+                # do the move
+                directions = self.gamestate.direction(my_ant, move) + [None]
+                self.gamestate.issue_order((my_ant, directions[0]))           
             
             # check if we still have time left to calculate more orders
             if self.gamestate.time_remaining() < 10:
@@ -160,44 +201,35 @@ class MyBot:
         'explore under enemies presence'
         avoidance_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, 2)
         for my_ant in self.gamestate.my_unmoved_ants():
-            logging.debug('avoidance explore task for %s' % str(my_ant))
             enemy_ants = [enemy_ant for enemy_ant, owner in self.gamestate.enemy_ants() 
                         if self.gamestate.euclidean_distance2(my_ant, enemy_ant) <= avoidance_distance]
             if len(enemy_ants) > 0:
-                logging.debug('going into avoidance_explore')
-                score, distance = battle.eval_formation(self.gamestate, [my_ant], enemy_ants)
-                if score < 1:
-                    # be safer is more enemies are around
+                # don't initiate 1 on 1 exchange, but don't be afraid
+                safe_distance = self.gamestate.attackradius2
+                if len(enemy_ants) > 1:
+                    # be safer if more enemies are around
                     safe_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, 1)
-                else:
-                    # don't initiate 1 on 1 exchange, but don't be afraid
-                    safe_distance = self.gamestate.attackradius2
-                nav_info = []
-                for loc in self.gamestate.passable_neighbours(my_ant) + [my_ant]:
-                    influence = self.explore_influence.map[loc]
-                    distance = min([self.gamestate.euclidean_distance2(loc, enemy_ant) for enemy_ant in enemy_ants])
-                    nav_info.append((influence, distance, loc))
-                    
+                desired_moves = self.get_desired_moves(my_ant)                
+                move_distances = {move:min([self.gamestate.euclidean_distance2(move, enemy_ant) for enemy_ant in enemy_ants])
+                                    for move in desired_moves}
+                debug_logger.debug('move_distances = %s' % str(move_distances))
                 # go for lowest influence that's safe
-                nav_info.sort()
-                best_loc = None
-                for info in nav_info:
-                    (influence, distance, loc) = info
-                    if distance > safe_distance:
-                        best_loc = loc
+                best_move = None
+                for move in desired_moves:
+                    if move_distances[move] > safe_distance:
+                        best_move = move
                         break
                 # if no safe move try largest distance
-                if best_loc is None:
-                    (influence, distance, loc) = sorted(nav_info, key=lambda x: x[1], reverse=True)[0]
-                    best_loc = loc
+                if best_move is None:
+                    best_move = max(move_distances, key=move_distances.get)
                     
                 # do the move
-                directions = self.gamestate.direction(my_ant, best_loc) + [None]
+                directions = self.gamestate.direction(my_ant, best_move) + [None]
                 self.gamestate.issue_order((my_ant, directions[0]))
-                logging.debug('moving %s' % str((my_ant, directions[0])))
+                debug_logger.debug('moving %s' % str((my_ant, directions[0])))
             
             # check if we still have time left to calculate more orders
-            if self.gamestate.time_remaining() < 10:
+            if self.gamestate.time_remaining() < 30:
                 break
         
     # static methods are not tied to a class and don't have self passed in

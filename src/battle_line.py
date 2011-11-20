@@ -84,7 +84,7 @@ def eval_formation(gamestate, my_formation, enemy_formation):
     # if there is no fighting, count the ants closest (loosely speaking) to enemies
     if min_distance > gamestate.attackradius2:
         min_distance_fuz = gamestate.euclidean_distance_add(min_distance, 0.4)
-        #logging.debug('min_distance_fuz = %f' % min_distance_fuz)
+        #debug_logger.debug('min_distance_fuz = %f' % min_distance_fuz)
         # find out fighting pairs by getting all_pairs that has min_distance
         fighting_pairs = [all_pairs[i] for i,x in enumerate(all_distances) if x <= min_distance_fuz]
     # if there is fighting, just count all fighting ants
@@ -106,8 +106,9 @@ def do_zone_combat(gamestate, zone):
     # either group is empty, invalid zone
     if len(my_group) == 0 or len(enemy_group) == 0:
         return
-    # if just 1 of my ant 1 of enemy ant, no combat (will fall into avoidance exploration mode)
-    if len(my_group) == len(enemy_group) == 1:
+    # if we have only 1 ant, we can't win, skip and leave it to avoidance explore
+    if len(my_group) == 1:
+        debug_logger.debug('do_zone_combat.skipping due to 1v1')
         return
         
     # we minimax on enemy stayed put or attacked (we're probably missing if enemy regrouped, but that's hard to predict)
@@ -121,7 +122,7 @@ def do_zone_combat(gamestate, zone):
     
     score, target_distance = eval_formation(gamestate, my_group, enemy_group)
     
-    logging.debug('score, target_distance = %s, %s' % (str(score), str(target_distance)))
+    debug_logger.debug('score, target_distance = %s, %s' % (str(score), str(target_distance)))
     # confidence is increased if we're winning overall
     if gamestate.winning_percentage > 0.65:
         confidence_threshold = 0.8
@@ -132,8 +133,8 @@ def do_zone_combat(gamestate, zone):
     attack_formation2, attack_orders2 = simulate_attack(gamestate, my_group, enemy_attack_formation)
     attack_score2, attack_distance2 = eval_formation(gamestate, attack_formation2, enemy_attack_formation)
     
-    logging.debug('attack_score1, attack_distance1 = %f, %d' % (attack_score1, attack_distance1))
-    logging.debug('attack_score2, attack_distance2 = %f, %d' % (attack_score2, attack_distance2))
+    debug_logger.debug('attack_score1, attack_distance1 = %f, %d' % (attack_score1, attack_distance1))
+    debug_logger.debug('attack_score2, attack_distance2 = %f, %d' % (attack_score2, attack_distance2))
     
     if attack_score1 <= attack_score2:
         attack_score = attack_score2
@@ -145,6 +146,7 @@ def do_zone_combat(gamestate, zone):
     # if attacking is a good idea, then go!
     if attack_score > confidence_threshold:
         # materialize attack orders
+        debug_logger.debug('attack order: %s' % (str(attack_orders)))
         for order in attack_orders:
             gamestate.issue_order(order)
     else:
@@ -169,7 +171,6 @@ def simulate_attack(gamestate, my_group, enemy_group):
         attack_orders.append((ant, direction[0]))
         attack_formation.remove(ant)
         attack_formation.append(best_move)
-    logging.debug('attack order: %s' % (str(attack_orders)))
         
     return attack_formation, attack_orders
     
@@ -192,7 +193,7 @@ def regroup(gamestate, my_group, enemy_group):
     for my_ant in my_ants_by_distance:
         order, target_loc = regroup_orders[my_ant]
         gamestate.issue_order(order)
-        logging.debug('regroup order: %s' % (str(order)))
+        debug_logger.debug('regroup order: %s' % (str(order)))
         
 def resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, my_ants_by_distance, enemy_group, min_distance, retracted_from):
     'ugly recursive function to make sure all moves are valid, if this damn thing proves to be slow, its probably better to just rewrite using minimax'
@@ -209,7 +210,7 @@ def resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, m
     # we need to retract to previous ant and make it move else where    
     retract_ant = None    
     if best_move is None:
-        logging.debug('move retraction logic triggered!')
+        debug_logger.debug('move retraction logic triggered!')
         # find last order moved into any of my possible moves
         for ant in reversed(my_ants_by_distance):
             if ant in regroup_orders:
@@ -227,13 +228,13 @@ def resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, m
 
     # some bug must've happened
     if best_move is None:
-        logging.debug('move retraction failed!')
-        logging.debug('my_ant = %s' % str(my_ant))
-        logging.debug('regroup_orders = %s' % str(regroup_orders))
-        logging.debug('my_ants_by_distance = %s' % str(my_ants_by_distance))
-        logging.debug('regroup_formation = %s' % str(regroup_formation))
-        logging.debug('retracted_from = %s' % str(retracted_from))
-        logging.debug('moves_by_preference = %s' % str(moves_by_preference))
+        debug_logger.debug('move retraction failed!')
+        debug_logger.debug('my_ant = %s' % str(my_ant))
+        debug_logger.debug('regroup_orders = %s' % str(regroup_orders))
+        debug_logger.debug('my_ants_by_distance = %s' % str(my_ants_by_distance))
+        debug_logger.debug('regroup_formation = %s' % str(regroup_formation))
+        debug_logger.debug('retracted_from = %s' % str(retracted_from))
+        debug_logger.debug('moves_by_preference = %s' % str(moves_by_preference))
         
         
     # convert to direction
@@ -268,5 +269,5 @@ def get_moves_by_preference(gamestate, my_ant, regroup_formation, enemy_group, m
     # sort the moves and distances together
     sorted_score_moves = sorted(zip(all_scores, all_moves), reverse=True)
     
-    logging.debug('sorted_score_moves = %s' % (str(sorted_score_moves)))
+    debug_logger.debug('sorted_score_moves = %s' % (str(sorted_score_moves)))
     return [move for score, move in sorted_score_moves]

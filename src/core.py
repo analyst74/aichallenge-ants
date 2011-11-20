@@ -4,12 +4,17 @@
 # Author: Bill Y
 # License: all your base are belong to us
 
-from collections import defaultdict, deque
-from math import sqrt
 
 import logging
-DEBUG_LOG_NAME = 'debug.log'
-logging.basicConfig(filename=DEBUG_LOG_NAME,level=logging.DEBUG,filemode='w')
+#logging.basicConfig(level=debug_logger.debug)
+debug_logger = logging.getLogger('debug')
+debug_logger.addHandler(logging.FileHandler('debug.log', 'w'))
+debug_logger.setLevel(logging.DEBUG)
+debug_logger.propagate = False
+perf_logger = logging.getLogger('performance')
+perf_logger.addHandler(logging.FileHandler('performance.log', 'w'))
+perf_logger.setLevel(logging.DEBUG)
+perf_logger.propagate = False
 
 HILL = 20
 # enemy number will range from 1 to n-1, where n is total number of players on map
@@ -19,8 +24,8 @@ LAND = -2
 FOOD = -3
 WATER = -4
 
-DECAY_RATE = 0.9
-CUTOFF = 0.001
+DECAY_RATE = 0.8
+CUTOFF = 0.0001
 EXPLORE_GAP = 20
 
 AIM = {'n': (-1, 0),

@@ -73,10 +73,10 @@ class Planner():
         my_tiles = [loc for loc in influence.map if math.fabs(influence.map[loc]) > 0.01]
         total_tile_count = self.gamestate.cols * self.gamestate.rows
         self.winning_percentage = float(len(my_tiles))/total_tile_count
-        logging.debug('currently owning %d in %d tiles, ratio: %f' % 
+        debug_logger.debug('currently owning %d in %d tiles, ratio: %f' % 
 			(len(my_tiles), total_tile_count, self.winning_percentage))
-        logging.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
-        logging.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
+        debug_logger.debug('my ant_hill is at %s' % str(self.gamestate.my_hills()))
+        debug_logger.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
         
         # alter aggressiveness as situation changes
         self.my_fighter_value = 0 - 1 - (self.winning_percentage / 0.3 % 1)
@@ -98,4 +98,4 @@ class Planner():
         if len(route) > 8:
             self.route_task = (route, high_dense_val)
             
-        logging.debug('found route_task: %s' % str(self.route_task))
+        debug_logger.debug('found route_task: %s' % str(self.route_task))

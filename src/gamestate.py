@@ -6,6 +6,8 @@
 
 import sys, random, time, numpy as np
 from core import *
+from math import sqrt
+from collections import defaultdict
 
 PLAYER_ANT = 'abcdefghij'
 HILL_ANT = string = 'ABCDEFGHI'
@@ -169,14 +171,14 @@ class GameState():
         #early exit
         if direction is None:
             self.ant_list[(row,col)] = (MY_ANT, True)
-            #logging.debug('moving %s -- stationary' % str((row, col)))
+            #debug_logger.debug('moving %s -- stationary' % str((row, col)))
             return
         
         (newrow, newcol) = self.destination((row, col), direction)
         if self.is_passable((newrow, newcol)):
             sys.stdout.write('o %s %s %s\n' % (row, col, direction))
             sys.stdout.flush()
-            #logging.debug('moving %s to %s' % (str((row, col)), str((newrow, newcol))))
+            #debug_logger.debug('moving %s to %s' % (str((row, col)), str((newrow, newcol))))
             # update ant moved flag
             del self.ant_list[(row,col)]
             self.ant_list[(newrow, newcol)] = (MY_ANT, True)
@@ -184,7 +186,7 @@ class GameState():
             self.map[newrow][newcol] = MY_ANT
             self.map[row][col] = LAND
         else:
-            logging.debug('INVALID order: %s' % str(order))
+            debug_logger.debug('INVALID order: %s' % str(order))
     
     def finish_turn(self):
         'finish the turn by writing the go line'

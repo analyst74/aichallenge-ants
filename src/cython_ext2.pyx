@@ -61,18 +61,19 @@ cdef inline destination(int row, int col, char* direction, int rows, int cols):
     return (row + d_row) % rows, (col + d_col) % cols
     
 
-def merge_linear_map(np.ndarray[DTYPEF_t, ndim=3] np_temp_maps, np.ndarray[DTYPEF_t, ndim=2] inf_map):
+def merge_linear_map(np.ndarray[DTYPEI_t, ndim=3] np_temp_maps, np.ndarray[DTYPEF_t, ndim=2] inf_map):
     #for (row,col) in [(r,c) for r in range(rows) for c in range(cols)]:
     cdef int rows = inf_map.shape[0]
     cdef int cols = inf_map.shape[1]
     cdef int row = 0
     cdef int col = 0
-    cdef np.ndarray[DTYPEF_t, ndim=1] buffer
+    cdef np.ndarray[DTYPEF_t, ndim=1] loc_values
+    cdef float min_val
     for row in range(rows):
         for col in range(cols):
-            buffer = np_temp_maps[:,row,col]
-            inf_map[row,col] = min(buffer) + 0.001 * sum(buffer)
-            # loc_values = []
-            # for temp_map in temp_maps:
-                # loc_values.append(temp_map[row,col])
-            # inf_map[row,col] = min(loc_values) + 0.001 * sum(loc_values)
+            loc_values = np.zeros(np_temp_maps.shape[0])
+            for i in range(np_temp_maps.shape[0]):
+                loc_values[i] = np_temp_maps[i, row,col]
+            min_val = min(loc_values)
+            if min_val < 0:
+                inf_map[row,col] = min_val + 0.001 * sum(loc_values)

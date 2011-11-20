@@ -26,10 +26,7 @@ class LinearInfluence():
         np_temp_maps = np.array(temp_maps)
         perf_logger.debug('set_influence.merge start: %s' % str(self.gamestate.time_remaining()))
         perf_logger.debug('np_temp_maps.shape = %s' % str(np_temp_maps.shape))
-        for row in range(rows):
-            for col in range(cols):
-                buffer = np_temp_maps[:,row,col]
-                self.map[row,col] = min(buffer) + 0.001 * sum(buffer)
+        merge_linear_map(np_temp_maps, self.map)
         perf_logger.debug('set_influence.finish: %s' % str(self.gamestate.time_remaining()))
         
     def get_map_for_single_loc(self, initial_loc, initial_value, abort_condition):
@@ -42,7 +39,7 @@ class LinearInfluence():
             modifier = 1
             
         # create temporary map, add point
-        temp_map = np.zeros((self.gamestate.rows, self.gamestate.cols))
+        temp_map = np.zeros((self.gamestate.rows, self.gamestate.cols), dtype=np.int)
         temp_map[initial_loc] = initial_value
         # diffuse
         self.bfs_linear_diffuse(initial_loc, temp_map, modifier, abort_condition)

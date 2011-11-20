@@ -19,9 +19,7 @@ class GameState():
         self.cols = None
         self.rows = None
         self.map = None
-        # simplified nodes of if a map is explored
-        # TODO: convert to boolean array instead of int
-        self.region_map = None 
+        #self.strat_map = None # simplified nodes of map
         self.hill_list = {}
         self.ant_list = {}
         self.my_fighters = []
@@ -66,10 +64,9 @@ class GameState():
                     self.spawnradius2 = int(tokens[1])
                 elif key == 'turns':
                     self.turns = int(tokens[1])
-                    
         self.map = np.array([[LAND for col in range(self.cols)]
-                    for row in range(self.rows)])                    
-        self.region_map = np.zeros((int(self.rows/EXPLORE_GAP), int(self.cols/EXPLORE_GAP)))
+                    for row in range(self.rows)])
+        #self.strat_map = np.ones((int(self.rows/EXPLORE_GAP), int(self.cols/EXPLORE_GAP)))
                     
         # setup neighbour table
         self.neighbour_table = {(row,col):self.get_neighbour_locs((row,col)) 
@@ -138,14 +135,10 @@ class GameState():
                             owner = int(tokens[3])
                             self.map[row][col] = HILL
                             self.hill_list[(row, col)] = owner
-        # update explored region        
-        for loc in [(row, col) for row in range(self.region_map.shape[0])
-                            for col in range(self.region_map.shape[1])]:
-            if self.region_map[loc] == 0:
-                real_loc = (loc[0] * EXPLORE_GAP, loc[1] * EXPLORE_GAP)
-                # TODO: further optimize this stuff is needed?
-                if real_loc in self.ant_list:
-                    self.region_map[loc] = 1
+        # for row in range(self.strat_map.shape[0]):
+            # for col in range(self.strat_map.shape[1]):
+                # if self.visible((row*EXPLORE_GAP, col*EXPLORE_GAP)):
+                    # self.strat_map[row,col] = 0
         
     def time_remaining(self):
         return self.turntime - self.time_elapsed()

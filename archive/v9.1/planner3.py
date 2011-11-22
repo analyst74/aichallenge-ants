@@ -30,6 +30,7 @@ class Planner():
         # ignore multi-hill situation, go all out in multi-maze 
         # also, we can't defend when there is no hill...
         influence_sources = []
+        my_hill = None
         if len(self.gamestate.my_hills()) == 1:
             my_hill = self.gamestate.my_hills()[0]
             all_invaders = [ant for ant, owner in self.gamestate.enemy_ants() 
@@ -39,7 +40,8 @@ class Planner():
                 influence_sources = [(my_hill, defense_value)]
         defense_influence.set_influence(influence_sources, None)
         # special for defense, we want to make the hill less desirable, so it doesn't get blocked
-        defense_influence.map[my_hill] = 0
+        if my_hill is not None:
+            defense_influence.map[my_hill] = 0
         
     def update_explore_influence(self, explore_influence):
         # my explorers

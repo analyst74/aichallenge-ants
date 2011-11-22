@@ -27,6 +27,7 @@ class GameState():
         self.hill_list = {}
         self.ant_list = {}
         self.my_fighters = []
+        self.my_combat_explorers = []
         self.water_list = {}
         self.dead_list = defaultdict(list)
         self.food_list = []

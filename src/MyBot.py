@@ -142,24 +142,25 @@ class MyBot:
     def get_desired_moves(self, ant):
         desired_moves = []
         # food
-        desired_moves = self.get_desired_move_from_linear_influence(ant, self.food_influence)
+        desired_moves.extend(self.get_desired_move_from_linear_influence(ant, self.food_influence))
         debug_logger.debug('desired_moves.food = %s' % str(desired_moves))
         
         # defend hill
-        if len(desired_moves) == 0:
-            desired_moves = self.get_desired_move_from_linear_influence(ant, self.defense_influence)
-            debug_logger.debug('desired_moves.defense = %s' % str(desired_moves))
+        desired_moves.extend(self.get_desired_move_from_linear_influence(ant, self.defense_influence))
+        debug_logger.debug('desired_moves.defense = %s' % str(desired_moves))
         
         # raze hill
-        if len(desired_moves) == 0:
-            desired_moves = self.get_desired_move_from_linear_influence(ant, self.raze_influence)
-            debug_logger.debug('desired_moves.raze = %s' % str(desired_moves))
+        desired_moves.extend(self.get_desired_move_from_linear_influence(ant, self.raze_influence))
+        debug_logger.debug('desired_moves.raze = %s' % str(desired_moves))
             
         # explore
-        if len(desired_moves) == 0:
-            desired_moves = self.get_desired_move_from_molecular_influence(ant, self.explore_influence)
-            debug_logger.debug('desired_moves.explore = %s' % str(desired_moves))
+        desired_moves.extend(self.get_desired_move_from_molecular_influence(ant, self.explore_influence))
+        debug_logger.debug('desired_moves.explore = %s' % str(desired_moves))
             
+        # uniquify
+        seen = set()
+        seen_add = seen.add
+        desired_moves = [move for move in desired_moves if move not in seen and not seen_add(move)]
         return desired_moves
 
     def get_desired_move_from_molecular_influence(self, ant, influence):

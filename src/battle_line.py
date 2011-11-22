@@ -28,8 +28,8 @@ def get_group_formations(gamestate, group):
 
 def get_combat_zones(gamestate):
     'get all my fighter ants in groups'
-    group_distance = 3**2
-    support_distance = 1
+    group_distance = 2**2
+    support_distance = 2**2
     enemy_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 3)
     enemy_ants = [ant_loc for ant_loc, owner in gamestate.enemy_ants()]    
     if len(enemy_ants) == 0:
@@ -37,22 +37,21 @@ def get_combat_zones(gamestate):
     # first get all my ants close to enemy, aka fighters
     open_fighters = [ma for ma in gamestate.my_unmoved_ants() 
         if min([gamestate.euclidean_distance2(ma, ea) for ea in enemy_ants]) < enemy_distance
-        and path.bfs_findenemy(gamestate, ma, enemy_distance)]    
-    # set open fighters to gamestate, later used by planner
-    gamestate.my_fighters = list(open_fighters)
-    debug_logger.debug('get_combat_zones setting my fighters: %s' % str(gamestate.my_fighters))
+        and path.bfs_findenemy(gamestate, ma, enemy_distance)]
     
     if len(open_fighters) == 0:
         return None
     # get all ants not in enemy range, but close to my fighters, aka supporters
     open_supporters = [ma for ma in gamestate.my_unmoved_ants() 
         if ma not in open_fighters
-        and min([gamestate.euclidean_distance2(ma, ma2) for ma2 in open_fighters]) <= support_distance]
+        and min([gamestate.euclidean_distance2(ma, ma2) for ma2 in open_fighters]) < support_distance]
 
     # group my fighter/supporters into group by proximity
     # then find all enemy ants within range for each group
     # those two groups combined is considered a combat zone
     fighter_groups = []
+    gamestate.my_fighters = []
+    gamestate.my_combat_explorers = []
     while len(open_fighters) > 0:
         first_ant = open_fighters.pop()
         group = [first_ant]
@@ -72,6 +71,14 @@ def get_combat_zones(gamestate):
             if min([gamestate.euclidean_distance2(ma, ea) for ma in group]) < enemy_distance]
                     
         fighter_groups.append((group, group_enemy))
+        
+        # set open fighters to gamestate, later used by planner
+        if len(group) > 1:
+            gamestate.my_fighters.extend(group)
+        elif len(group) == 1:
+            gamestate.my_combat_explorers.extend(group)
+        debug_logger.debug('get_combat_zones setting my_fighters: %s' % str(gamestate.my_fighters))
+        debug_logger.debug('get_combat_zones setting my_combat_explorers: %s' % str(gamestate.my_combat_explorers))
 
     return fighter_groups
     
@@ -131,7 +138,7 @@ def do_zone_combat(gamestate, zone):
     else:
         confidence_threshold = 1.0
     attack_formation1, attack_orders1 = simulate_attack(gamestate, my_group, enemy_group)
-    attack_score1, attack_distance1 = eval_formation(gamestate, attack_formation1, enemy_attack_formation)
+    attack_score1, attack_distance1 = eval_formation(gamestate, attack_formation1, enemy_group)
     attack_formation2, attack_orders2 = simulate_attack(gamestate, my_group, enemy_attack_formation)
     attack_score2, attack_distance2 = eval_formation(gamestate, attack_formation2, enemy_attack_formation)
     

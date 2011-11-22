@@ -1,3 +1,11 @@
+Nov 20, 2011
+combat - sometimes avoidance explore against 2 enemies will suicide
+    check the code, see if we can replicate it
+strategy - when enemy hill is too close, all our ants will go for it, with noone left collecting food
+    dynamically adjust enemy hill desirability
+explore - ants do not seem to be very willing to help those in distress
+    do some influece map plotting
+
 Nov 19, 2011
 strategy - keep track of spotted enemy
 strategy - maybe I should really look into this symmetry stuff?

@@ -16,6 +16,7 @@ class Planner():
         self.food_value = -10
         self.my_fighter_value = - 0.5
         self.my_explorer_value = 1
+        #self.my_combat_explorer_value = 0
         self.enemy_ant_value = 0
                 
     def update_food_influence(self, food_influence):
@@ -49,14 +50,14 @@ class Planner():
     def update_explore_influence(self, explore_influence):
         # my explorers
         for ant_loc in [ant for ant in self.gamestate.my_ants() 
-                        if ant not in self.gamestate.my_fighters] :
+                        if ant not in self.gamestate.my_fighters
+                        and ant not in self.gamestate.my_combat_explorers] :
             neighbour_ants = [ant for ant in self.gamestate.neighbour_table[ant_loc] if ant in self.gamestate.ant_list]
             explore_influence.map[ant_loc] +=  self.my_explorer_value * (len(neighbour_ants) + 1)
         # my fighters
         debug_logger.debug('update_explore_influence setting my fighters: %s' % str(self.gamestate.my_fighters))
         for ant_loc in self.gamestate.my_fighters:
             explore_influence.map[ant_loc] += self.my_fighter_value
-        
 
     def update_aggressiveness(self, influence):
         'update dynamic goal values depending on current situation'

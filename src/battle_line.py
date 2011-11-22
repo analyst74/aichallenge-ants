@@ -37,16 +37,17 @@ def get_combat_zones(gamestate):
     # first get all my ants close to enemy, aka fighters
     open_fighters = [ma for ma in gamestate.my_unmoved_ants() 
         if min([gamestate.euclidean_distance2(ma, ea) for ea in enemy_ants]) < enemy_distance
-        and path.bfs_findenemy(gamestate, ma, enemy_distance)]
+        and path.bfs_findenemy(gamestate, ma, enemy_distance)]    
+    # set open fighters to gamestate, later used by planner
+    gamestate.my_fighters = list(open_fighters)
+    debug_logger.debug('get_combat_zones setting my fighters: %s' % str(gamestate.my_fighters))
+    
     if len(open_fighters) == 0:
         return None
     # get all ants not in enemy range, but close to my fighters, aka supporters
     open_supporters = [ma for ma in gamestate.my_unmoved_ants() 
         if ma not in open_fighters
         and min([gamestate.euclidean_distance2(ma, ma2) for ma2 in open_fighters]) <= support_distance]
-    
-    # set open fighters to gamestate, later used by planner
-    gamestate.my_fighters = open_fighters
 
     # group my fighter/supporters into group by proximity
     # then find all enemy ants within range for each group
@@ -107,8 +108,9 @@ def do_zone_combat(gamestate, zone):
     if len(my_group) == 0 or len(enemy_group) == 0:
         return
     # if we have only 1 ant, we can't win, skip and leave it to avoidance explore
-    if len(my_group) == 1:
+    if len(my_group) == 1:    
         debug_logger.debug('do_zone_combat.skipping due to 1v1')
+        #gamestate.my_fighters.remove(my_group[0])
         return
         
     # we minimax on enemy stayed put or attacked (we're probably missing if enemy regrouped, but that's hard to predict)

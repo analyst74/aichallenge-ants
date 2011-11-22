@@ -48,7 +48,12 @@ def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim
                         buffer[d_row,d_col] += diffuse_value
                         neighbour_count += 1
 
-                buffer[row, col] += inf_map[row,col] - diffuse_value * neighbour_count
+                if diffuse_value < 0:
+                    # negative influences do not accumulate near water
+                    buffer[row, col] += inf_map[row,col] - diffuse_value * 4
+                else:
+                    # positive influence accumulate near water, so ants are naturally repelled from edges 
+                    buffer[row, col] += inf_map[row,col] - diffuse_value * neighbour_count
     # copy buffer to inf_map
     return buffer
 

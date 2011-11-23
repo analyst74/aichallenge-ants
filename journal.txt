@@ -1,3 +1,9 @@
+Nov 22, 2011
+combat - bug in attack where we always assume enemy will attack too
+    fixed
+explore - maybe instead of reverse scent diffusion, get rid of scent at all (maybe except fighter scent), and use unexplored map as desirable start this way, the frontier ants will always know where to go, and could possibly save us from having to iterate large numbers of molecular diffusion to *push* ants out as we do now. Ants deep inside empire space will just navigate based on historical value that slowly propagates into empire.
+    - possible problem, this might make empire ants to prefer un-seeable space close-by(still empire space) as opposed to moving toward frontiers
+
 Nov 20, 2011
 combat - sometimes avoidance explore against 2 enemies will suicide
     check the code, see if we can replicate it
@@ -5,6 +11,7 @@ strategy - when enemy hill is too close, all our ants will go for it, with noone
     dynamically adjust enemy hill desirability
 explore - ants do not seem to be very willing to help those in distress
     do some influece map plotting
+strategy - keep track of blob of ants
 
 Nov 19, 2011
 strategy - keep track of spotted enemy

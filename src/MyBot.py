@@ -73,23 +73,24 @@ class MyBot:
         self.combat_time = max(self.combat_time_history)        
         
         # use planner to set new influence
-        perf_logger.debug('self.update_influences.start = %s' % str(self.gamestate.time_remaining()))
+        perf_logger.debug('self.update_influences.start = %s' % str(self.gamestate.time_elapsed()))
         self.planner.update_food_influence(self.food_influence)
-        perf_logger.debug('self.update_food_influence.finish = %s' % str(self.gamestate.time_remaining()))     
+        perf_logger.debug('self.update_food_influence.finish = %s' % str(self.gamestate.time_elapsed()))     
         self.planner.update_raze_influence(self.raze_influence)
-        perf_logger.debug('self.update_raze_influence.finish = %s' % str(self.gamestate.time_remaining()))     
+        perf_logger.debug('self.update_raze_influence.finish = %s' % str(self.gamestate.time_elapsed()))     
         self.planner.update_defense_influence(self.defense_influence)
-        perf_logger.debug('self.update_defense_influence.finish = %s' % str(self.gamestate.time_remaining()))     
+        perf_logger.debug('self.update_defense_influence.finish = %s' % str(self.gamestate.time_elapsed()))     
         self.planner.update_explore_influence(self.explore_influence)
-        perf_logger.debug('self.update_explore_influence.finish = %s' % str(self.gamestate.time_remaining()))        
+        perf_logger.debug('self.update_explore_influence.finish = %s' % str(self.gamestate.time_elapsed()))        
         
         # decay strategy influence
         self.explore_influence.decay(DECAY_RATE)
         
         # diffuse explore_influence, which is the only one using molecular diffusion
-        perf_logger.debug('explore_influence.diffuse().start = %s' % str(self.gamestate.time_remaining()))        
+        perf_logger.debug('explore_influence.diffuse().start = %s' % str(self.gamestate.time_elapsed()))
+        expected_explore_time = len(self.gamestate.my_ants()) / 2 + 20
         for i in xrange(30):
-            if self.gamestate.time_remaining() < self.diffuse_time + 50:
+            if self.gamestate.time_remaining() < self.diffuse_time + expected_explore_time:
                 perf_logger.debug('bailing diffuse after %d times' % (i))
                 break
             diffuse_start = self.gamestate.time_remaining()
@@ -97,15 +98,17 @@ class MyBot:
             diffuse_duration = diffuse_start - self.gamestate.time_remaining()
             self.diffuse_time = max([diffuse_duration, self.diffuse_time])
         self.diffuse_time -= 1
-        perf_logger.debug('explore_influence.diffuse().finish = %s' % str(self.gamestate.time_remaining())) 
+        perf_logger.debug('explore_influence.diffuse().finish = %s' % str(self.gamestate.time_elapsed())) 
         
         self.log_detail()
         
         # avoidance explorer
         self.avoidance_explore()
+        perf_logger.debug('self.avoidance_explore.finish = %s' % str(self.gamestate.time_elapsed()))   
         
         # normal explore
         self.normal_explore()
+        perf_logger.debug('self.normal_explore.finish = %s' % str(self.gamestate.time_elapsed()))   
         perf_logger.debug('endturn: my_ants count = %d, time_elapsed = %s' % (len(self.gamestate.my_ants()), self.gamestate.time_elapsed()))
 
     def raze_override(self):

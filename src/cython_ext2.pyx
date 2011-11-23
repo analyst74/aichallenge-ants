@@ -72,6 +72,7 @@ def merge_linear_map(np.ndarray[DTYPEI_t, ndim=3] np_temp_maps, np.ndarray[DTYPE
     cdef int cols = inf_map.shape[1]
     cdef int row = 0
     cdef int col = 0
+    cdef int i = 0
     cdef np.ndarray[DTYPEF_t, ndim=1] loc_values
     cdef float min_val
     for row in range(rows):

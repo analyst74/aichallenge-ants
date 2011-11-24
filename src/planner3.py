@@ -11,7 +11,7 @@ import math, path, numpy as np
 class Planner():
     def __init__(self, gamestate):
         self.gamestate = gamestate
-        self.enemy_hill_value = -30
+        self.enemy_hill_value = -15
         self.my_hill_value = -15
         self.food_value = -10
         self.my_fighter_value = - 0.5
@@ -62,7 +62,7 @@ class Planner():
     def update_aggressiveness(self, influence):
         'update dynamic goal values depending on current situation'
         # assess situation
-        my_tile_count = len([v for v in np.ravel(np.fabs(influence.map)) if v > 0.01])
+        my_tile_count = len([v for v in np.ravel(influence.map) if v > CUTOFF])
         total_tile_count = self.gamestate.cols * self.gamestate.rows
         self.gamestate.winning_percentage = float(my_tile_count)/total_tile_count
         debug_logger.debug('currently owning %d in %d tiles, ratio: %f' % 
@@ -71,5 +71,6 @@ class Planner():
         debug_logger.debug('known enemy hill: %s' % str(self.gamestate.enemy_hills()))
         
         # alter aggressiveness as situation changes
-        self.my_fighter_value = 0 - 1 - (self.gamestate.winning_percentage / 0.3 % 1)
-        self.enemy_ant_value = 0 - (self.gamestate.winning_percentage / 0.3 % 1) * 2
+        # self.my_fighter_value = 0 - 1 - (self.gamestate.winning_percentage / 0.3 % 1)
+        # self.enemy_ant_value = 0 - (self.gamestate.winning_percentage / 0.3 % 1) * 2
+        self.enemy_hill_value = -15 + -15 * int(self.gamestate.winning_percentage / 0.2)

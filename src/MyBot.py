@@ -71,6 +71,9 @@ class MyBot:
         # razing nearby hill takes precedence
         self.raze_override()
         
+        # update aggressiveness
+        self.planner.update_aggressiveness(self.explore_influence)
+        
         # handle combat
         combat_start = self.gamestate.time_remaining()
         self.issue_combat_task()
@@ -81,7 +84,8 @@ class MyBot:
         # use planner to set new influence
         perf_logger.debug('food_influence.start = %s' % str(self.gamestate.time_elapsed()))
         self.planner.update_food_influence(self.food_influence)
-        perf_logger.debug('raze_influence.start = %s' % str(self.gamestate.time_elapsed()))     
+        perf_logger.debug('raze_influence.start = %s' % str(self.gamestate.time_elapsed()))
+        debug_logger.debug('razing distance = %d' % self.planner.enemy_hill_value)
         self.planner.update_raze_influence(self.raze_influence)
         perf_logger.debug('defense_influence.start = %s' % str(self.gamestate.time_elapsed()))     
         self.planner.update_defense_influence(self.defense_influence)

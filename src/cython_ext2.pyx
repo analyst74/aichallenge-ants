@@ -83,3 +83,23 @@ def merge_linear_map(np.ndarray[DTYPEI_t, ndim=3] np_temp_maps, np.ndarray[DTYPE
             min_val = min(loc_values)
             if min_val < 0:
                 inf_map[row,col] = min_val + 0.001 * sum(loc_values)
+
+def merge_linear_map2(np.ndarray[DTYPEI_t, ndim=3] np_temp_maps, np.ndarray[DTYPEF_t, ndim=2] inf_map):
+    #for (row,col) in [(r,c) for r in range(rows) for c in range(cols)]:
+    cdef int rows = inf_map.shape[0]
+    cdef int cols = inf_map.shape[1]
+    cdef int row = 0
+    cdef int col = 0
+    cdef int i = 0
+    #cdef np.ndarray[DTYPEF_t, ndim=1] loc_values
+    cdef float min_val
+    for row in range(rows):
+        for col in range(cols):
+            loc_values = []
+            for i in range(np_temp_maps.shape[0]):
+                if np_temp_maps[i,row,col] < 0:                    
+                    loc_values.append(np_temp_maps[i,row,col])
+                    if loc_values[-1] < min_val:
+                        min_val = loc_values[-1]
+            if min_val < 0:
+                inf_map[row,col] = min_val + 0.001 * sum(loc_values)

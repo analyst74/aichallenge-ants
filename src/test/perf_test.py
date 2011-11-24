@@ -12,7 +12,7 @@ import os, sys
 cmd_folder = os.path.dirname(os.path.abspath('.'))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
-from cython_ext2 import merge_linear_map
+from cython_ext2 import merge_linear_map, merge_linear_map2
 import numpy as np
 rows = cols = 150
 layers = 10
@@ -37,6 +37,11 @@ for row in range(rows):
     t2 = timeit.Timer(s2, setup)
     print 't2.timeit'
     print t2.timeit(number=10)
+
+    s3 = 'merge_linear_map2(np_temp_maps, inf_map)'
+    t3 = timeit.Timer(s3, setup)
+    print 't3.timeit'
+    print t3.timeit(number=10)
 
 def inf_test():
     setup = """

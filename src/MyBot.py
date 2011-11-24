@@ -121,9 +121,9 @@ class MyBot:
         
     def issue_combat_task(self):
         'combat logic'
-        perf_logger.debug('issue_combat_task.start = %s' % str(self.gamestate.time_remaining())) 
+        perf_logger.debug('issue_combat_task.start = %s' % str(self.gamestate.time_elapsed())) 
         zones = battle.get_combat_zones(self.gamestate)
-        perf_logger.debug('get_combat_zones.finish = %s' % str(self.gamestate.time_remaining())) 
+        perf_logger.debug('get_combat_zones.finish = %s' % str(self.gamestate.time_elapsed())) 
         
         if zones is not None:
             debug_logger.debug('zones.count = %d' % len(zones))
@@ -131,16 +131,16 @@ class MyBot:
             for zone in zones:
                 i += 1
                 # debug_logger.debug('group combat loop for = %s' % str(zone))
-                # perf_logger.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
+                # perf_logger.debug('do_zone_combat.start = %s' % str(self.gamestate.time_elapsed())) 
                 battle.do_zone_combat(self.gamestate, zone)
-                # perf_logger.debug('do_zone_combat.start = %s' % str(self.gamestate.time_remaining())) 
+                # perf_logger.debug('do_zone_combat.start = %s' % str(self.gamestate.time_elapsed())) 
                 
                 # check if we still have time left to calculate more orders
                 if self.gamestate.time_remaining() < 100:
                     debug_logger.debug('bailing combat zone after %d times' % (i))
                     break
                 
-        perf_logger.debug('issue_combat_task.finish = ' + str(self.gamestate.time_remaining())) 
+        perf_logger.debug('issue_combat_task.finish = ' + str(self.gamestate.time_elapsed())) 
     
     def get_desired_moves(self, ant):
         desired_moves = []
@@ -199,6 +199,7 @@ class MyBot:
             
             # check if we still have time left to calculate more orders
             if self.gamestate.time_remaining() < 10:
+                perf_logger.debug('bailing normal explore')
                 break
     
     def avoidance_explore(self):
@@ -234,6 +235,7 @@ class MyBot:
             
             # check if we still have time left to calculate more orders
             if self.gamestate.time_remaining() < 30:
+                perf_logger.debug('bailing avoidance explore')
                 break
         
     # static methods are not tied to a class and don't have self passed in

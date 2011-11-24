@@ -8,7 +8,7 @@ import path
 import numpy as np
 from collections import deque
 from core import ALL_DIRECTIONS, perf_logger
-from cython_ext2 import merge_linear_map
+from cython_ext2 import merge_linear_map2 as merge_linear_map
 
 class LinearInfluence():
     def __init__(self, gamestate):
@@ -16,7 +16,7 @@ class LinearInfluence():
         self.map = np.zeros((self.gamestate.rows, self.gamestate.cols))
         
     def set_influence(self, influence_sources, abort_condition):
-        perf_logger.debug('set_influence.start: %s' % str(self.gamestate.time_remaining()))
+        perf_logger.debug('set_influence.start: %s' % str(self.gamestate.time_elapsed()))
         self.map = np.zeros((self.gamestate.rows, self.gamestate.cols))
         if len(influence_sources) == 0:
             return
@@ -24,10 +24,10 @@ class LinearInfluence():
         for initial_loc, initial_value in influence_sources:
             temp_maps.append(self.get_map_for_single_loc(initial_loc, initial_value, abort_condition))        
         np_temp_maps = np.array(temp_maps)
-        perf_logger.debug('set_influence.merge start: %s' % str(self.gamestate.time_remaining()))
+        perf_logger.debug('set_influence.merge start: %s' % str(self.gamestate.time_elapsed()))
         perf_logger.debug('np_temp_maps.shape = %s' % str(np_temp_maps.shape))
         merge_linear_map(np_temp_maps, self.map)
-        perf_logger.debug('set_influence.finish: %s' % str(self.gamestate.time_remaining()))
+        perf_logger.debug('set_influence.finish: %s' % str(self.gamestate.time_elapsed()))
         
     def get_map_for_single_loc(self, initial_loc, initial_value, abort_condition):
         'add point at initial_loc with initial_value (which also determines how far does it go'

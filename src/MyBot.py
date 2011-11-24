@@ -7,7 +7,7 @@
 from core import *
 from gamestate import GameState
 from influence5 import Influence
-from linear_influence2 import LinearInfluence
+from linear_influence3b import LinearInfluence
 from planner3 import Planner
 from random import choice
 from collections import deque
@@ -16,6 +16,7 @@ import battle_line as battle
 import sys, os, pickle, traceback, math
 
 DETAIL_LOG = False
+DETAIL_LOG_START = 450
 
 # define a class with a do_turn method
 # the Gamestate.run method will parse and update bot input
@@ -27,6 +28,7 @@ class MyBot:
         self.diffuse_time = 0
         self.combat_time_history = deque([0, 0, 0, 0, 0])
         self.combat_time = 0
+        self.explore_time = 0
     
     # do_setup is run once at the start of the game
     # after the bot has received the game settings
@@ -44,18 +46,22 @@ class MyBot:
         perf_logger.debug('self.diffuse_time = %d' % self.diffuse_time)
         perf_logger.debug('self.combat_time_history = %s' % str(self.combat_time_history))
         perf_logger.debug('self.combat_time = %s' % self.combat_time)
+        perf_logger.debug('self.explore_time = %d' % self.explore_time)
             
     def log_detail(self):
-        if DETAIL_LOG and os.path.isdir('pickle'):# and int(self.gamestate.current_turn) % 10 == 0:
+        if DETAIL_LOG and os.path.isdir('pickle') and \
+            int(self.gamestate.current_turn) > DETAIL_LOG_START and \
+            int(self.gamestate.current_turn) % 10 == 0 \
+            :
             # dump gamestate
             pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.gamestate', 'wb')
             pickle.dump(self.gamestate, pickle_file)
             pickle_file.close()
             
             # dump influence map value
-            pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.influence', 'wb')
-            pickle.dump(self.explore_influence, pickle_file)
-            pickle_file.close()
+            # pickle_file = open('pickle/turn_' + str(self.gamestate.current_turn) + '.influence', 'wb')
+            # pickle.dump(self.explore_influence, pickle_file)
+            # pickle_file.close()
     
     # do turn is run once per turn
     def do_turn(self):        
@@ -73,24 +79,23 @@ class MyBot:
         self.combat_time = max(self.combat_time_history)        
         
         # use planner to set new influence
-        perf_logger.debug('self.update_influences.start = %s' % str(self.gamestate.time_elapsed()))
+        perf_logger.debug('food_influence.start = %s' % str(self.gamestate.time_elapsed()))
         self.planner.update_food_influence(self.food_influence)
-        perf_logger.debug('self.update_food_influence.finish = %s' % str(self.gamestate.time_elapsed()))     
+        perf_logger.debug('raze_influence.start = %s' % str(self.gamestate.time_elapsed()))     
         self.planner.update_raze_influence(self.raze_influence)
-        perf_logger.debug('self.update_raze_influence.finish = %s' % str(self.gamestate.time_elapsed()))     
+        perf_logger.debug('defense_influence.start = %s' % str(self.gamestate.time_elapsed()))     
         self.planner.update_defense_influence(self.defense_influence)
-        perf_logger.debug('self.update_defense_influence.finish = %s' % str(self.gamestate.time_elapsed()))     
+        perf_logger.debug('explore_influence.start = %s' % str(self.gamestate.time_elapsed()))     
         self.planner.update_explore_influence(self.explore_influence)
-        perf_logger.debug('self.update_explore_influence.finish = %s' % str(self.gamestate.time_elapsed()))        
+        perf_logger.debug('influences.finish = %s' % str(self.gamestate.time_elapsed()))        
         
         # decay strategy influence
         self.explore_influence.decay(DECAY_RATE)
         
         # diffuse explore_influence, which is the only one using molecular diffusion
         perf_logger.debug('explore_influence.diffuse().start = %s' % str(self.gamestate.time_elapsed()))
-        expected_explore_time = len(self.gamestate.my_ants()) / 2 + 20
         for i in xrange(30):
-            if self.gamestate.time_remaining() < self.diffuse_time + expected_explore_time:
+            if self.gamestate.time_remaining() < self.diffuse_time + self.explore_time + 20:
                 perf_logger.debug('bailing diffuse after %d times' % (i))
                 break
             diffuse_start = self.gamestate.time_remaining()
@@ -102,12 +107,14 @@ class MyBot:
         
         self.log_detail()
         
+        explore_start = self.gamestate.time_remaining()
         # avoidance explorer
         self.avoidance_explore()
         perf_logger.debug('self.avoidance_explore.finish = %s' % str(self.gamestate.time_elapsed()))   
         
         # normal explore
         self.normal_explore()
+        self.explore_time = max([explore_start - self.gamestate.time_remaining(), self.explore_time]) - 1
         perf_logger.debug('self.normal_explore.finish = %s' % str(self.gamestate.time_elapsed()))   
         perf_logger.debug('endturn: my_ants count = %d, time_elapsed = %s' % (len(self.gamestate.my_ants()), self.gamestate.time_elapsed()))
 
@@ -234,7 +241,7 @@ class MyBot:
                 debug_logger.debug('moving %s' % str((my_ant, directions[0])))
             
             # check if we still have time left to calculate more orders
-            if self.gamestate.time_remaining() < 30:
+            if self.gamestate.time_remaining() < 20:
                 perf_logger.debug('bailing avoidance explore')
                 break
         

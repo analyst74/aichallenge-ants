@@ -8,7 +8,7 @@ import path
 import numpy as np
 from collections import deque
 from core import ALL_DIRECTIONS, perf_logger
-from cython_ext2 import merge_linear_map
+from cython_ext2 import merge_linear_map2
 
 class LinearInfluence():
     def __init__(self, gamestate):
@@ -26,7 +26,7 @@ class LinearInfluence():
         np_temp_maps = np.array(temp_maps)
         perf_logger.debug('set_influence.merge start: %s' % str(self.gamestate.time_elapsed()))
         perf_logger.debug('np_temp_maps.shape = %s' % str(np_temp_maps.shape))
-        merge_linear_map(np_temp_maps, self.map)
+        merge_linear_map2(np_temp_maps, self.map)
         perf_logger.debug('set_influence.finish: %s' % str(self.gamestate.time_elapsed()))
         
     def get_map_for_single_loc(self, initial_loc, initial_value, abort_condition):

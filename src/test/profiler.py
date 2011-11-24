@@ -11,9 +11,7 @@ if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
 from influence5 import Influence as Influence5
 import battle_line as battle
-from linear_influence2 import LinearInfluence as LinearInfluence2
-from linear_influence3a import LinearInfluence as LinearInfluence3a
-from linear_influence3b import LinearInfluence as LinearInfluence3b
+from linear_influence3 import LinearInfluence as LinearInfluence3
     
     
 def setup_linear_inf():
@@ -22,11 +20,11 @@ def setup_linear_inf():
     gamestate = pickle.load(pickle_file)
     pickle_file.close()
     
-    inf2 = LinearInfluence2(gamestate)
-    inf3a = LinearInfluence3a(gamestate)
-    inf3b = LinearInfluence3b(gamestate)
+    # inf2 = LinearInfluence2(gamestate)
+    # inf3a = LinearInfluence3a(gamestate)
+    inf3 = LinearInfluence3(gamestate)
     
-    return inf2, inf3a, inf3b
+    return inf3
     
 def profile_linear_map_set():
     inf2, inf3a, inf3b = setup_linear_inf()
@@ -83,10 +81,10 @@ def profile_overall():
     
     
 if __name__ == '__main__':
-    inf2, inf3a, inf3b = setup_linear_inf()
+    inf3 = setup_linear_inf()
     inf_value = -12
-    influence_sources = [((row,col), inf_value) for row in range(inf2.gamestate.rows) if row%20==0 
-                                                for col in range(inf2.gamestate.cols) if col%20==0]
+    influence_sources = [((row,col), inf_value) for row in range(inf3.gamestate.rows) if row%20==0 
+                                                for col in range(inf3.gamestate.cols) if col%20==0]
     print('total of %d influence sources' % len(influence_sources))
 
-    cProfile.run('inf3b.set_influence(influence_sources, True)')
+    cProfile.run('inf3.set_influence(influence_sources, True)')

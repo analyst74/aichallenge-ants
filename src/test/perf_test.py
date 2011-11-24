@@ -14,7 +14,7 @@ import os, sys
 cmd_folder = os.path.dirname(os.path.abspath('.'))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
-from cython_ext2 import merge_linear_map, merge_linear_map2, merge_linear_map_temp
+from cython_ext2 import merge_linear_map
 import numpy as np
 rows = cols = 150
 layers = 10

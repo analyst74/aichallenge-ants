@@ -43,6 +43,7 @@ class GameState():
         self.sqrt_table = {}
         self.neighbour_table = {}
         self.winning_percentage = 0.0
+        self.vision_offsets_2 = []
 
     def setup(self, data):
         'parse initial input and setup starting game state'
@@ -78,6 +79,17 @@ class GameState():
         self.neighbour_table = {(row,col):self.get_neighbour_locs((row,col)) 
                                 for row in xrange(self.rows) 
                                 for col in xrange(self.cols)}
+                        
+        # precalculate squares around an ant to set as visible
+        mx = int(sqrt(self.viewradius2))
+        for d_row in range(-mx,mx+1):
+            for d_col in range(-mx,mx+1):
+                d = d_row**2 + d_col**2
+                if d <= self.viewradius2:
+                    self.vision_offsets_2.append((
+                        d_row%self.rows-self.rows,
+                        d_col%self.cols-self.cols
+                    ))
                             
     def update(self, data):
         'parse engine input and update the game state'        
@@ -155,17 +167,7 @@ class GameState():
     
     def time_elapsed(self):
         return int(1000 * (time.time() - self.turn_start_time))
-            
-    def move_toward(self, ant_loc, target_loc):
-        'move toward the generao direction'
-        possible_moves = [ant_loc] + self.passable_neighbours(ant_loc)
-        move_distances = [self.manhattan_distance(move, target_loc) for move in possible_moves]
-        
-        best_distance, best_move = sorted(zip(move_distances, possible_moves))[0]
-        directions = self.direction(ant_loc, best_move)
-        if len(directions) > 0:
-            self.issue_order((ant_loc, directions[0]))
-    
+          
     def issue_order(self, order):
         'issue an order by writing the proper ant location and direction'
         (row, col), direction = order
@@ -340,18 +342,6 @@ class GameState():
         ' determine which squares are visible to the given player '
 
         if self.vision == None:
-            if not hasattr(self, 'vision_offsets_2'):
-                # precalculate squares around an ant to set as visible
-                self.vision_offsets_2 = []
-                mx = int(sqrt(self.viewradius2))
-                for d_row in range(-mx,mx+1):
-                    for d_col in range(-mx,mx+1):
-                        d = d_row**2 + d_col**2
-                        if d <= self.viewradius2:
-                            self.vision_offsets_2.append((
-                                d_row%self.rows-self.rows,
-                                d_col%self.cols-self.cols
-                            ))
             # set all spaces as not visible
             # loop through ants and set all squares around ant as visible
             self.vision = [[False]*self.cols for row in range(self.rows)]

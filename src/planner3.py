@@ -5,7 +5,6 @@
 # License: all your base are belong to us
 
 from core import debug_logger, ALL_DIRECTIONS, BEHIND, CUTOFF, EXPLORE_GAP
-#from influence5 import Influence
 import math, path, numpy as np
 
 class Planner():
@@ -16,6 +15,7 @@ class Planner():
         self.food_value = -10
         self.my_fighter_value = - 0.5
         self.my_explorer_value = 1
+        self.invisible_area_value = -100
         #self.my_combat_explorer_value = 0
         self.enemy_ant_value = 0
                 
@@ -46,8 +46,20 @@ class Planner():
         # special for defense, we want to make the hill less desirable, so it doesn't get blocked
         if my_hill is not None:
             defense_influence.map[my_hill] = 0
-        
+            
     def update_explore_influence(self, explore_influence):
+        for ant in self.gamestate.my_ants():
+            a_row, a_col = ant
+            for v_row, v_col in self.gamestate.vision_offsets_2:
+                explore_influence.map[a_row+v_row,a_col+v_col] += self.my_explorer_value
+
+    def update_explore_influence_old(self, explore_influence):
+        # invisible areas
+        # for row in xrange(0, self.gamestate.rows, 5):
+            # for col in xrange(0, self.gamestate.cols, 5):
+                # if not self.gamestate.visible((row,col)):
+                    # explore_influence.map[row,col] += self.invisible_area_value
+                    
         # my explorers
         for ant_loc in [ant for ant in self.gamestate.my_ants() 
                         if ant not in self.gamestate.my_fighters

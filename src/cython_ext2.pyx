@@ -21,6 +21,38 @@ AIM = {'n': (-1, 0),
        's': (1, 0),
        'w': (0, -1)}
        
+GAUSSIAN_KERNEL = [0.006, 0.061, 0.242, 0.383, 0.242, 0.061, 0.006]
+       
+def gaussian_blur(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim=2] gs_map):
+    'diffuse inf_map with gaussian kernel, modified for water'
+    assert inf_map.dtype == DTYPEF and gs_map.dtype == DTYPEI
+    cdef int rows = inf_map.shape[0]
+    cdef int cols = inf_map.shape[1]
+    cdef int row = 0
+    cdef int col = 0
+    cdef int i = 0
+    cdef float temp = 0.0
+    cdef DTYPEF_t diffuse_value
+    cdef int neighbour_count = 0
+    cdef np.ndarray[DTYPEF_t, ndim=2] buffer = np.zeros([rows, cols], dtype=DTYPEF) 
+    
+    for row in range(rows):
+        for col in range(cols):
+            if gs_map[row,col] != WATER:
+                temp = 0
+                for i in range(7):
+                    temp +=  inf_map[row,(col-3+i) % cols] * GAUSSIAN_KERNEL[i]
+                buffer[row,col] = temp
+    for row in range(rows):
+        for col in range(cols):
+            if gs_map[row,col] != WATER:
+                temp = 0
+                for i in range(7):
+                    temp +=  buffer[(row-3+i) % rows,col] * GAUSSIAN_KERNEL[i]
+                buffer[row,col] = temp
+
+    return buffer
+       
 def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim=2] gs_map, float cutoff):
     'diffuse inf_map'
     assert inf_map.dtype == DTYPEF and gs_map.dtype == DTYPEI
@@ -54,7 +86,7 @@ def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim
                 else:
                     # positive influence accumulate near water, so ants are naturally repelled from edges 
                     buffer[row, col] += inf_map[row,col] - diffuse_value * neighbour_count
-    # copy buffer to inf_map
+
     return buffer
 
 cdef inline destination(int row, int col, char* direction, int rows, int cols):

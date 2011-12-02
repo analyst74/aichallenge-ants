@@ -77,8 +77,8 @@ def get_combat_zones(gamestate):
             gamestate.my_fighters.extend(group)
         elif len(group) == 1:
             gamestate.my_combat_explorers.extend(group)
-        debug_logger.debug('get_combat_zones setting my_fighters: %s' % str(gamestate.my_fighters))
-        debug_logger.debug('get_combat_zones setting my_combat_explorers: %s' % str(gamestate.my_combat_explorers))
+        #debug_logger.debug('get_combat_zones setting my_fighters: %s' % str(gamestate.my_fighters))
+        #debug_logger.debug('get_combat_zones setting my_combat_explorers: %s' % str(gamestate.my_combat_explorers))
 
     return fighter_groups
     
@@ -116,7 +116,7 @@ def do_zone_combat(gamestate, zone):
         return
     # if we have only 1 ant, we can't win, skip and leave it to avoidance explore
     if len(my_group) == 1:    
-        debug_logger.debug('do_zone_combat.skipping due to 1v1')
+        #debug_logger.debug('do_zone_combat.skipping due to 1v1')
         #gamestate.my_fighters.remove(my_group[0])
         return
         
@@ -131,7 +131,7 @@ def do_zone_combat(gamestate, zone):
     
     score, target_distance = eval_formation(gamestate, my_group, enemy_group)
     
-    debug_logger.debug('score, target_distance = %s, %s' % (str(score), str(target_distance)))
+    #debug_logger.debug('score, target_distance = %s, %s' % (str(score), str(target_distance)))
     # confidence is increased if we're winning overall
     if gamestate.winning_percentage > 0.65:
         confidence_threshold = 0.8
@@ -142,8 +142,8 @@ def do_zone_combat(gamestate, zone):
     attack_formation2, attack_orders2 = simulate_attack(gamestate, my_group, enemy_attack_formation)
     attack_score2, attack_distance2 = eval_formation(gamestate, attack_formation2, enemy_attack_formation)
     
-    debug_logger.debug('attack_score1, attack_distance1 = %f, %d' % (attack_score1, attack_distance1))
-    debug_logger.debug('attack_score2, attack_distance2 = %f, %d' % (attack_score2, attack_distance2))
+    # debug_logger.debug('attack_score1, attack_distance1 = %f, %d' % (attack_score1, attack_distance1))
+    # debug_logger.debug('attack_score2, attack_distance2 = %f, %d' % (attack_score2, attack_distance2))
     
     if attack_score1 <= attack_score2:
         attack_score = attack_score2
@@ -155,7 +155,7 @@ def do_zone_combat(gamestate, zone):
     # if attacking is a good idea, then go!
     if attack_score > confidence_threshold:
         # materialize attack orders
-        debug_logger.debug('attack order: %s' % (str(attack_orders)))
+        # debug_logger.debug('attack order: %s' % (str(attack_orders)))
         for order in attack_orders:
             gamestate.issue_order(order)
     else:
@@ -202,7 +202,7 @@ def regroup(gamestate, my_group, enemy_group):
     for my_ant in my_ants_by_distance:
         order, target_loc = regroup_orders[my_ant]
         gamestate.issue_order(order)
-        debug_logger.debug('regroup order: %s' % (str(order)))
+        # debug_logger.debug('regroup order: %s' % (str(order)))
         
 def resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, my_ants_by_distance, enemy_group, min_distance, retracted_from):
     'ugly recursive function to make sure all moves are valid, if this damn thing proves to be slow, its probably better to just rewrite using minimax'
@@ -219,7 +219,7 @@ def resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, m
     # we need to retract to previous ant and make it move else where    
     retract_ant = None    
     if best_move is None:
-        debug_logger.debug('move retraction logic triggered!')
+        # debug_logger.debug('move retraction logic triggered!')
         # find last order moved into any of my possible moves
         for ant in reversed(my_ants_by_distance):
             if ant in regroup_orders:
@@ -278,5 +278,5 @@ def get_moves_by_preference(gamestate, my_ant, regroup_formation, enemy_group, m
     # sort the moves and distances together
     sorted_score_moves = sorted(zip(all_scores, all_moves), reverse=True)
     
-    debug_logger.debug('sorted_score_moves = %s' % (str(sorted_score_moves)))
+    # debug_logger.debug('sorted_score_moves = %s' % (str(sorted_score_moves)))
     return [move for score, move in sorted_score_moves]

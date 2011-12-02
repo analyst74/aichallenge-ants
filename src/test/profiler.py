@@ -12,14 +12,36 @@ if cmd_folder not in sys.path:
 from influence5 import Influence as Influence5
 from influence6 import Influence as Influence6
 import battle_line as battle
+from linear_influence3 import LinearInfluence as LinearInfluence3
+    
+    
+def setup_linear_inf():
+    'we use random_walk 10-2'
+    pickle_file = open('test_data/perf_test/turn_500.gamestate', 'r')
+    gamestate = pickle.load(pickle_file)
+    pickle_file.close()
+    
+    # inf2 = LinearInfluence2(gamestate)
+    # inf3a = LinearInfluence3a(gamestate)
+    inf3 = LinearInfluence3(gamestate)
+    
+    return inf3
+    
+def profile_linear_map_set():
+    inf2, inf3a, inf3b = setup_linear_inf()
+    inf_value = -12
+    influence_sources = [((row,col), inf_value) for row in range(inf2.gamestate.rows) if row%25==0 
+                                                for col in range(inf2.gamestate.cols) if col%20==0]
+    print('total of %d influence sources' % len(influence_sources))
 
-
+    cProfile.run('inf3b.set_influence(influence_sources, True)')
+    
 def setup_inf():
     'we use random_walk 10-2'
     pickle_file = open('test_data/perf_test/turn_11.gamestate', 'r')
     gamestate = pickle.load(pickle_file)
     pickle_file.close()
-    
+
     inf1 = Influence5(gamestate)
     initiate_inf(inf1)
     inf2 = Influence6(gamestate)
@@ -41,50 +63,12 @@ def save_inf(inf, name):
     pickle_file = open('profiler_' + name + '.influence', 'wb')
     pickle.dump(inf, pickle_file)
     pickle_file.close()
-    
 
 def setup_combat_zones():
     pickle_file = open('test_data/perf_test/turn_177.gamestate', 'r')
     gamestate = pickle.load(pickle_file)
     pickle_file.close()
     return gamestate
-
-def setup_overall():
-    ready = """
-turn 0
-loadtime 3000
-turntime 1000
-rows 43
-cols 39
-turns 50
-viewradius2 55
-attackradius2 5
-spawnradius2 1
-player_seed 42
-ready
-    """
-    setup = """
-import MyBot
-    """
-    turns = """
-turn 1
-w 22 18
-w 22 19
-w 22 20
-w 23 17
-w 23 21
-h 28 19 0
-a 28 19 0
-f 26 23
-go
-turn 2
-h 28 19 0
-a 28 20 0
-f 25 26
-f 26 23
-go
-    """
-    return setup, turns
 
 def profile_influence():
     inf1, inf2 = setup_inf()
@@ -103,3 +87,11 @@ if __name__ == '__main__':
     inf1, inf2 = setup_inf()
     cProfile.run('inf1.diffuse()')
     cProfile.run('inf2.diffuse()')
+    
+    # inf3 = setup_linear_inf()
+    # inf_value = -12
+    # influence_sources = [((row,col), inf_value) for row in range(inf3.gamestate.rows) if row%20==0 
+                                                # for col in range(inf3.gamestate.cols) if col%20==0]
+    # print('total of %d influence sources' % len(influence_sources))
+
+    # cProfile.run('inf3.set_influence(influence_sources, True)')

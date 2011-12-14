@@ -1,1 +1,1 @@
-python tcpclient.py ants.fluxid.pl 2081 "python ..\archive\v4\MyBot.py" analyst74_v4 840425 %*
+python tcpclient.py ants.fluxid.pl 2081 "python ..\archive\v4\MyBot.py" analyst74_v4 123456 %*

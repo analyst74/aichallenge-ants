@@ -1,1 +1,1 @@
-python tcpclient.py ants.fluxid.pl 2081 "python3 ..\src\v3\v3.py3" analyst74_v3 840425 %*
+python tcpclient.py bhickey.net 2081 "python ..\archive\v3\v3.py" analyst74_v3 123456 %*

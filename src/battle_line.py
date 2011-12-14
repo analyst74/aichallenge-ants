@@ -11,8 +11,7 @@ def get_group_formations(gamestate, group):
     'get all possible formation of a group in a single turn'
     # special: ant indexes do not change, in other words, actual orders needed to get from 
     # group to full_result is just group[i] move to full_result[i]
-    all_locs = [group[0]] + [n_loc for n_loc in gamestate.get_neighbour_locs(group[0]) 
-                            if gamestate.is_passable_ignore_ant(n_loc)]
+    all_locs = gamestate.passable_moves(group[0])
     full_result = []
     if len(group) > 1:
         for sub_result in get_group_formations(gamestate, group[1:]):
@@ -166,7 +165,7 @@ def simulate_attack(gamestate, my_group, enemy_group):
     attack_formation = list(my_group)
     attack_orders = []
     for ant in my_group:
-        possible_moves = [ant] + [n_loc for n_loc in gamestate.get_neighbour_locs(ant) 
+        possible_moves = [ant] + [n_loc for n_loc in gamestate.neighbour_table[ant]
                                 if gamestate.is_passable_override(n_loc, attack_formation, my_group)]
         move_distances = []        
         for move in possible_moves:
@@ -261,7 +260,7 @@ def resolve_regroup_move(gamestate, my_ant, regroup_formation, regroup_orders, m
 def get_moves_by_preference(gamestate, my_ant, regroup_formation, enemy_group, min_distance):
     'move an ant to closest spot to enmy_group, above min_distance'
     all_moves = [my_ant] + [n_loc for n_loc in gamestate.neighbour_table[my_ant]     
-                            if gamestate.is_passable_ignore_ant(n_loc)]
+                            if gamestate.is_passable(n_loc)]
     
     all_scores = []
     for move in all_moves:

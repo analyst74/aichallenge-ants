@@ -11,12 +11,12 @@ import numpy as np
 def do_combat(gamestate):
     'perform combat action'
     # values used in multiple places
-    threat_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 1)
+    threat_distance = gamestate.attackradius2 #gamestate.euclidean_distance_add(gamestate.attackradius2, 1)
     
     # get all my combat ants and enemy ants
     combat_distance = gamestate.euclidean_distance_add(gamestate.attackradius2, 2)
     enemy_ants = gamestate.enemy_ants()
-    my_ants = bfs_find_my_combat_ants(gamestate, enemy_ants, combat_distance)
+    my_ants = sorted(bfs_find_my_combat_ants(gamestate, enemy_ants, combat_distance))
 
     # set up influence 
     influence_by_threat = get_influence_by_threat(gamestate, my_ants, enemy_ants, threat_distance)
@@ -29,19 +29,13 @@ def do_combat(gamestate):
     occupied_spots = []
     my_ants_by_threat_level = sorted([(influence_by_threat[MY_ANT][ant], ant) for ant in my_ants], reverse=True)
     for threat, ant in my_ants_by_threat_level:
-        all_moves = [ant] + [n_loc for n_loc in gamestate.neighbour_table[ant] 
-                            if gamestate.is_passable_ignore_ant(n_loc)]
-        # negate occupied spots
-        all_moves = [move for move in all_moves if move not in occupied_spots]
+        all_moves = [move for move in gamestate.passable_moves(ant)]
         all_moves_by_score = sorted([(combat_scores[move], move) for move in all_moves], reverse=True)
         debug_logger.debug('do_combat for %s' % str(ant))
         debug_logger.debug('all_move_by_score = %s' % str(all_moves_by_score))
         # only move if there is a beneficial move
-        if all_moves_by_score[0][0] > 1:
-            move_orders.append((ant, all_moves_by_score[0][1]))
-            occupied_spots.append(all_moves_by_score[0][1])
-    for ant, move in move_orders:
-        gamestate.issue_order_by_location(ant, move)
+        if all_moves_by_score[0][0] >= 1:
+            gamestate.issue_order_by_location(ant, all_moves_by_score[0][1])
     
 def bfs_find_my_combat_ants(gamestate, enemy_ants, distance_limit):
     'find all my ants within certain distance of enemy ants'
@@ -71,11 +65,11 @@ def bfs_find_my_combat_ants(gamestate, enemy_ants, distance_limit):
                         
     return my_combat_ants
     
-def bfs_set_influence(gamestate, map, start_loc, distance_limit):
+def bfs_set_influence(gamestate, map, start_locs, distance_limit):
     'additively set influence + 1 within distance_limit of start_loc'
-    list_q = deque([start_loc])
+    list_q = deque(start_locs)
     # mark source, each node knows its root, to calculate distance
-    marked_dict = {start_loc:start_loc}
+    marked_dict = {loc:loc for loc in start_locs}
     
     while len(list_q) > 0:
         # dequeue an item from Q into v
@@ -86,7 +80,7 @@ def bfs_set_influence(gamestate, map, start_loc, distance_limit):
             # if w is not marked
             if w not in marked_dict and \
                 w not in gamestate.water_list and \
-                gamestate.euclidean_distance2(w, marked_dict[v]) < distance_limit:
+                gamestate.euclidean_distance2(w, marked_dict[v]) <= distance_limit:
                 # mark w with its appropriate level
                 marked_dict[w] = marked_dict[v]
                 # enqueue w onto Q
@@ -95,11 +89,13 @@ def bfs_set_influence(gamestate, map, start_loc, distance_limit):
 def get_influence_by_owner(gamestate, my_ants, enemy_ants, threat_distance):    
     influence_by_owner = {MY_ANT:np.zeros((gamestate.rows, gamestate.cols), dtype=np.int)}
     for ant in my_ants:
-        bfs_set_influence(gamestate, influence_by_owner[MY_ANT], ant, threat_distance)
+        all_moves = gamestate.passable_moves(ant)
+        bfs_set_influence(gamestate, influence_by_owner[MY_ANT], all_moves, threat_distance)
     for ant, owner in enemy_ants:
         if owner not in influence_by_owner:
             influence_by_owner[owner] = np.zeros((gamestate.rows, gamestate.cols), dtype=np.int)
-        bfs_set_influence(gamestate, influence_by_owner[owner], ant, threat_distance)
+        all_moves = gamestate.passable_moves(ant)
+        bfs_set_influence(gamestate, influence_by_owner[owner], all_moves, threat_distance)
         
     return influence_by_owner
 
@@ -129,11 +125,11 @@ def get_combat_scores(gamestate, my_ants, enemy_ants, influence_by_threat, threa
             threat = influence_by_threat[MY_ANT][loc]
             # no threat, neutral value
             if threat == 0:
-                combat_scores[loc] = 1.0
+                combat_scores[loc] = 0.99
             # at least 1 enemy in range
             else:
                 enemies_in_range = [(enemy, owner) for enemy, owner in enemy_ants
-                                    if gamestate.euclidean_distance2(loc, enemy) < gamestate.attackradius2]
+                                    if gamestate.euclidean_distance2(loc, enemy) <= gamestate.attackradius2]
                                     
                 dying_enemy = len([enemy for enemy, owner in enemies_in_range
                                 if influence_by_threat[owner][enemy] > threat])

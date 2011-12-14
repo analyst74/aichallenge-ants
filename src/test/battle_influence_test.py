@@ -96,9 +96,9 @@ go
     def test_set_influence_1(self):
         influence_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, + 1)
         map = np.zeros((self.gamestate.rows, self.gamestate.cols), dtype=np.int)
-        battle_influence.bfs_set_influence(self.gamestate, map, (3,3), influence_distance)
-        battle_influence.bfs_set_influence(self.gamestate, map, (3,8), influence_distance)
-
+        battle_influence.bfs_set_influence(self.gamestate, map, [(3,3)], influence_distance)
+        battle_influence.bfs_set_influence(self.gamestate, map, [(3,8), (4,8)], influence_distance)
+        
         self.assertEqual(map[1,0], 0)
         self.assertEqual(map[1,1], 1)
         self.assertEqual(map[2,0], 1)
@@ -112,7 +112,8 @@ go
         self.assertEqual(map[6,7], 1)
         self.assertEqual(map[6,8], 1)
         self.assertEqual(map[6,9], 1) 
-        self.assertEqual(map[6,10], 0) 
+        self.assertEqual(map[6,10], 1) 
+        self.assertEqual(map[7,10], 0) 
 
     def test_get_influence_by_owner_1(self):
         """
@@ -139,7 +140,7 @@ go
         self.gamestate.update(data)
         my_ants = self.gamestate.my_ants()
         enemy_ants = self.gamestate.enemy_ants()
-        threat_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, 1)
+        threat_distance = self.gamestate.attackradius2
         influence_by_owner = battle_influence.get_influence_by_owner(self.gamestate, my_ants, enemy_ants, threat_distance)
         
         self.assertEqual(len(influence_by_owner), 3)
@@ -169,7 +170,7 @@ go
         self.gamestate.update(data)
         my_ants = self.gamestate.my_ants()
         enemy_ants = self.gamestate.enemy_ants()
-        threat_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, 1)
+        threat_distance = self.gamestate.attackradius2
         influence_by_threat = battle_influence.get_influence_by_threat(self.gamestate, my_ants, enemy_ants, threat_distance)
         
         self.assertEqual(len(influence_by_threat), 3)
@@ -201,42 +202,38 @@ go
         self.gamestate.update(data)
         my_ants = self.gamestate.my_ants()
         enemy_ants = self.gamestate.enemy_ants()
-        threat_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, 1)
+        threat_distance = self.gamestate.attackradius2
+        influence_by_owner = battle_influence.get_influence_by_owner(self.gamestate, my_ants, enemy_ants, threat_distance)
         influence_by_threat = battle_influence.get_influence_by_threat(self.gamestate, my_ants, enemy_ants, threat_distance)
         combat_scores = battle_influence.get_combat_scores(self.gamestate, my_ants, enemy_ants, influence_by_threat, threat_distance)
         
-        print(combat_scores)
         self.assertEqual(combat_scores[(5,4)], 1.0)
-        self.assertEqual(combat_scores[(6,5)], 1.0)
+        self.assertEqual(combat_scores[(6,4)], 0.99)
 
     def test_get_combat_scores_2(self):
         """
  23456789
 2..bb.
 3.....
-4.....c
-5..a..
-6.....aa
-7.....
-8.....
+4.....
+5.....
+6..a..
         """
         data = """
 turn 1
 a 2 4 1 
 a 2 5 1 
-a 5 4 0
-a 6 7 0
-a 6 8 0
-a 4 7 2
+a 6 4 0
 go
         """
         self.gamestate.update(data)
         my_ants = self.gamestate.my_ants()
         enemy_ants = self.gamestate.enemy_ants()
-        threat_distance = self.gamestate.euclidean_distance_add(self.gamestate.attackradius2, 1)
+        threat_distance = self.gamestate.attackradius2
         influence_by_threat = battle_influence.get_influence_by_threat(self.gamestate, my_ants, enemy_ants, threat_distance)
         combat_scores = battle_influence.get_combat_scores(self.gamestate, my_ants, enemy_ants, influence_by_threat, threat_distance)
 
+        print(influence_by_threat)
 
 if __name__ == '__main__':
     unittest.main()

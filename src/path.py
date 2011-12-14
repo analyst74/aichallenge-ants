@@ -80,10 +80,7 @@ def bfs_findenemy(gamestate, start_loc, distance_limit):
                         return True
                         
     return False
-    
-def create_linear_influence(gamestate, start_loc, limit, existing_map):
-    'expandd existing linear influence map from start_loc, up to limit nodes'
-
+        
 def astar(gamestate, start, goal, length_limit):
     'a star limit by given depth'
     #en.wikipedia.org/wiki/A*_search_algorithm

@@ -44,6 +44,9 @@ class GameState():
         self.neighbour_table = {}
         self.winning_percentage = 0.0
         self.vision_offsets_2 = []
+        # move_table is in the format of destination_location:ant_location
+        # using destination as key for faster invalid move check
+        self.move_table = {} 
 
     def setup(self, data):
         'parse initial input and setup starting game state'
@@ -76,7 +79,7 @@ class GameState():
         self.region_map = np.zeros((int(self.rows/EXPLORE_GAP), int(self.cols/EXPLORE_GAP)))
                     
         # setup neighbour table
-        self.neighbour_table = {(row,col):self.get_neighbour_locs((row,col)) 
+        self.neighbour_table = {(row,col):[self.destination((row,col), direction) for direction in ALL_DIRECTIONS]
                                 for row in xrange(self.rows) 
                                 for col in xrange(self.cols)}
                         
@@ -167,32 +170,35 @@ class GameState():
     
     def time_elapsed(self):
         return int(1000 * (time.time() - self.turn_start_time))
-          
-    def issue_order(self, order):
-        'issue an order by writing the proper ant location and direction'
-        (row, col), direction = order
-        #early exit
-        if direction is None:
-            self.ant_list[(row,col)] = (MY_ANT, True)
-            #debug_logger.debug('moving %s -- stationary' % str((row, col)))
-            return
         
-        (newrow, newcol) = self.destination((row, col), direction)
-        if self.is_passable((newrow, newcol)):
-            sys.stdout.write('o %s %s %s\n' % (row, col, direction))
-            sys.stdout.flush()
-            #debug_logger.debug('moving %s to %s' % (str((row, col)), str((newrow, newcol))))
-            # update ant moved flag
-            del self.ant_list[(row,col)]
-            self.ant_list[(newrow, newcol)] = (MY_ANT, True)
-            # update map info (to avoid to ants moving into the same spot)
-            self.map[newrow][newcol] = MY_ANT
-            self.map[row][col] = LAND
+    def issue_order_by_location(self, ant, dest_loc):
+        if self.is_passable(dest_loc):
+            self.move_table[dest_loc] = ant
+            self.ant_list[ant] = (MY_ANT, True)
         else:
-            debug_logger.debug('INVALID order: %s' % str(order))
+            debug_logger.debug('ERROR: invalid move - destination %s for ant %s' % (str(dest_loc), str(ant)))
     
+    def issue_order(self, order):
+        ant, direction = order
+        if direction is None:
+            self.issue_order_by_location(ant, ant)
+        else:
+            dest_loc = self.destination(ant, direction)
+            self.issue_order_by_location(ant, dest_loc)
+    
+    def execute_orders(self):
+        'issue an order by writing the proper ant location and direction'
+        for dest_loc, ant in self.move_table.items():
+            directions = self.direction(ant, dest_loc)
+            row, col = ant
+            if len(directions) > 0:
+                sys.stdout.write('o %s %s %s\n' % (row, col, directions[0]))
+                sys.stdout.flush()
+        self.move_table = {}
+
     def finish_turn(self):
-        'finish the turn by writing the go line'
+        'finish the turn by writing out the orders and go line'
+        self.execute_orders()        
         sys.stdout.write('go\n')
         sys.stdout.flush()
     
@@ -228,19 +234,13 @@ class GameState():
         (row, col) = loc
         return self.map[row][col] == WATER
         
-    def is_unoccupied(self, loc):
-        'true if no ants are at the location'
-        row, col = loc
-        return self.map[row][col] in (LAND, DEAD)
-
-    def is_my_unmoved_ant(self, loc):
-        'true if is my ant, and is not moved'
-        return loc in self.ant_list and self.ant_list[loc][0] == MY_ANT and self.ant_list[loc][1] == False
-    
     def is_passable(self, loc):
-        'true if not water or ant or food'
-        row, col = loc
-        return self.map[row][col] in (LAND, DEAD, HILL)
+        ' un-passable tiles: water, food, enemy_ant, move_table'
+        ' enemy ants'
+        ' move_table destination (key) '
+        return self.map[loc] not in (WATER, FOOD) and \
+            (loc not in self.ant_list or self.ant_list[loc][0] == MY_ANT) and \
+            loc not in self.move_table 
         
     def is_passable_override(self, loc, unpassable_override, passable_override):
         'instead of simple passable, override with additional unpassable and passable locations'
@@ -251,24 +251,9 @@ class GameState():
             return True
         else:
             return self.is_passable(loc)
-        
-    def is_passable_ignore_ant(self, loc):
-        'true if not water or food'
-        row, col = loc
-        return self.map[row][col] not in (WATER, FOOD)
-        
-    def passable_directions(self, loc):
-        'finds valid move from given location, based on passable'
-        passable_directions = []
-        for direction in ALL_DIRECTIONS:
-            new_loc = self.destination(loc, direction)
-            if (self.is_passable(new_loc)):
-                passable_directions.append(direction)
-                
-        return passable_directions
 
-    def passable_neighbours(self, loc):
-        return [l for l in self.neighbour_table[loc] if self.is_passable(l)]
+    def passable_moves(self, loc):
+        return [l for l in [loc] + self.neighbour_table[loc] if self.is_passable(l)]
         
     def destination(self, loc, direction):
         'calculate a new location given the direction and wrap correctly'
@@ -351,11 +336,7 @@ class GameState():
                     self.vision[a_row+v_row][a_col+v_col] = True
         row, col = loc
         return self.vision[row][col]
-        
-    def get_neighbour_locs(self, loc):
-        'get all neighbour locations'
-        return [self.destination(loc, direction) for direction in ALL_DIRECTIONS]
- 
+         
     def render_text_map(self):
         'return a pretty string representing the map'
         tmp = ''

@@ -12,7 +12,8 @@ from planner3 import Planner
 from random import choice
 from collections import deque
 
-import battle_line as battle
+#import battle_line as battle
+import battle_influence as battle
 import sys, os, pickle, traceback, math
 
 DETAIL_LOG = False
@@ -138,30 +139,13 @@ class MyBot:
         
     def issue_combat_task(self):
         'combat logic'
-        perf_logger.debug('issue_combat_task.start = %s' % str(self.gamestate.time_elapsed())) 
-        zones = battle.get_combat_zones(self.gamestate)
-        perf_logger.debug('get_combat_zones.finish = %s' % str(self.gamestate.time_elapsed())) 
-        
-        if zones is not None:
-            debug_logger.debug('zones.count = %d' % len(zones))
-            i = 0
-            for zone in zones:
-                i += 1
-                # debug_logger.debug('group combat loop for = %s' % str(zone))
-                # perf_logger.debug('do_zone_combat.start = %s' % str(self.gamestate.time_elapsed())) 
-                battle.do_zone_combat(self.gamestate, zone)
-                # perf_logger.debug('do_zone_combat.start = %s' % str(self.gamestate.time_elapsed())) 
-                
-                # check if we still have time left to calculate more orders
-                if self.gamestate.time_remaining() < 100:
-                    debug_logger.debug('bailing combat zone after %d times' % (i))
-                    break
-                
+        perf_logger.debug('issue_combat_task.start = ' + str(self.gamestate.time_elapsed())) 
+        battle.do_combat(self.gamestate)
         perf_logger.debug('issue_combat_task.finish = ' + str(self.gamestate.time_elapsed())) 
     
     def get_desired_moves(self, ant, map):        
         desired_moves = []
-        neighbours_and_influences = sorted([(map[loc], loc) for loc in [ant] + self.gamestate.passable_neighbours(ant)])
+        neighbours_and_influences = sorted([(map[loc], loc) for loc in self.gamestate.passable_moves(ant)])
         debug_logger.debug('neighbours_and_influences = %s' % str(neighbours_and_influences))
         for inf, n_loc in neighbours_and_influences:
             desired_moves.append(n_loc)
@@ -170,14 +154,16 @@ class MyBot:
          
     def normal_explore(self, merged_map):
         'only concern influence'
-        for my_ant in self.gamestate.my_unmoved_ants():
+        for my_ant in sorted(self.gamestate.my_unmoved_ants()):
             debug_logger.debug('normal explore task for %s' % str(my_ant))
             desired_moves = self.get_desired_moves(my_ant, merged_map)
             if len(desired_moves) > 0:
                 move = desired_moves[0]
                 # do the move
                 directions = self.gamestate.direction(my_ant, move) + [None]
-                self.gamestate.issue_order((my_ant, directions[0]))           
+                self.gamestate.issue_order((my_ant, directions[0]))
+            else:
+                debug_logger.debug('ERROR: no valid move for ant = %s' % str(my_ant))
             
             # check if we still have time left to calculate more orders
             if self.gamestate.time_remaining() < 10:

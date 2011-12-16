@@ -12,8 +12,7 @@ from planner3 import Planner
 from random import choice
 from collections import deque
 
-#import battle_line as battle
-import battle_influence as battle
+import battle_line2 as battle
 import sys, os, pickle, traceback, math
 
 DETAIL_LOG = False
@@ -86,7 +85,7 @@ class MyBot:
         perf_logger.debug('food_influence.start = %s' % str(self.gamestate.time_elapsed()))
         self.planner.update_food_influence(self.food_influence)
         perf_logger.debug('raze_influence.start = %s' % str(self.gamestate.time_elapsed()))
-        debug_logger.debug('razing distance = %d' % self.planner.enemy_hill_value)
+        debug_logger.debug('razing distance = %d' % -self.planner.enemy_hill_value)
         self.planner.update_raze_influence(self.raze_influence)
         perf_logger.debug('defense_influence.start = %s' % str(self.gamestate.time_elapsed()))     
         self.planner.update_defense_influence(self.defense_influence)

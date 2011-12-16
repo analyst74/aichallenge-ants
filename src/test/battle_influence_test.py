@@ -1,4 +1,4 @@
-# battle_line_test.py: unit test for battle line module
+# battle_influence_test.py: unit test for battle influence module
 #
 # AI bot written for AI Challenge 2011 - Ants
 # Author: Bill Y
@@ -283,7 +283,7 @@ go
 3..b.b.
 4......
 5......
-6.a..a.
+6....a.
 7......
         """
         data = """
@@ -292,7 +292,6 @@ a 2 3 1
 a 3 5 1 
 a 3 4 1 
 a 3 6 1 
-a 6 3 0 
 a 6 6 0
 go
         """

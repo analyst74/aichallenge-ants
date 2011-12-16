@@ -1,0 +1,23 @@
+set up combat groups, then for each group
+    get distance influence map for enemy (up to distance < 27, which is about 3 steps outside attack radius)
+    get danger zone (within attack radius of all squares reachable by enemy ants next turn) 
+        this can be derived from distance influence map
+        
+    iterate all moves within kill zone 
+        calculate distance influence after move (up to distance < 11, aka danger zone)
+        do combat evaluation (how many enemies are in danger zone, and how many of our ants are in kill zone)
+        if result is good (enemy < us), execute the move and move onto next combat group
+        else (enemy >= us), move on to next move combination
+            
+    if no good move combination is found
+        iterate all moves outside kill zone, but inside danger zone
+            do combat evaluation (how many enemies are in attack zone, and how many of our ants are in danger zone)
+            if result is good (enemy <= us), execute the move and move onto next combat group
+            else (enemy > us), move on to next move combination
+    
+    if we still haven't found a good move combo yet, we're totally out numbered
+    move all ants toward outside danger zone
+        if no such move is possible, we're backed up to wall, just go to higher distance, and hope we can escape
+        
+        it's also possible that we're surrounded...hmmm
+            

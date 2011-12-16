@@ -144,6 +144,7 @@ go
         influence_by_owner = battle_influence.get_influence_by_owner(self.gamestate, my_ants, enemy_ants, threat_distance)
         
         self.assertEqual(len(influence_by_owner), 3)
+        self.assertEqual(influence_by_owner[0][2,4], 1)
         self.assertEqual(influence_by_owner[0][6,5], 4)
         self.assertEqual(influence_by_owner[0][7,5], 4)
 
@@ -171,6 +172,7 @@ go
         my_ants = self.gamestate.my_ants()
         enemy_ants = self.gamestate.enemy_ants()
         threat_distance = self.gamestate.attackradius2
+        influence_by_owner = battle_influence.get_influence_by_owner(self.gamestate, my_ants, enemy_ants, threat_distance)
         influence_by_threat = battle_influence.get_influence_by_threat(self.gamestate, my_ants, enemy_ants, threat_distance)
         
         self.assertEqual(len(influence_by_threat), 3)
@@ -205,9 +207,11 @@ go
         threat_distance = self.gamestate.attackradius2
         influence_by_owner = battle_influence.get_influence_by_owner(self.gamestate, my_ants, enemy_ants, threat_distance)
         influence_by_threat = battle_influence.get_influence_by_threat(self.gamestate, my_ants, enemy_ants, threat_distance)
+
         combat_scores = battle_influence.get_combat_scores(self.gamestate, my_ants, enemy_ants, influence_by_threat, threat_distance)
-        
-        self.assertEqual(combat_scores[(5,4)], 1.0)
+
+        # print (combat_scores)
+        self.assertEqual(combat_scores[(5,4)], 0.99)
         self.assertEqual(combat_scores[(6,4)], 0.99)
 
     def test_get_combat_scores_2(self):
@@ -217,13 +221,14 @@ go
 3.....
 4.....
 5.....
-6..a..
+6..aa.
         """
         data = """
 turn 1
 a 2 4 1 
 a 2 5 1 
 a 6 4 0
+a 6 5 0
 go
         """
         self.gamestate.update(data)
@@ -233,7 +238,76 @@ go
         influence_by_threat = battle_influence.get_influence_by_threat(self.gamestate, my_ants, enemy_ants, threat_distance)
         combat_scores = battle_influence.get_combat_scores(self.gamestate, my_ants, enemy_ants, influence_by_threat, threat_distance)
 
-        print(influence_by_threat)
+        # print (influence_by_threat)
+        # print (combat_scores)
+        self.assertEqual(combat_scores[(5,4)], 2.02)
+        self.assertEqual(combat_scores[(6,4)], 0.99)
+
+    def test_get_combat_scores_3(self):
+        'this test makes sure when we are winning, our ant will press forward'
+        """
+ 23456789
+2b....
+3...a.
+4..a..
+5.a...
+6.....
+7.....
+8.....
+        """
+        data = """
+turn 1
+a 2 2 1 
+a 3 5 0 
+a 4 4 0 
+a 5 3 0
+go
+        """
+        self.gamestate.update(data)
+        my_ants = self.gamestate.my_ants()
+        enemy_ants = self.gamestate.enemy_ants()
+        threat_distance = self.gamestate.attackradius2
+        influence_by_threat = battle_influence.get_influence_by_threat(self.gamestate, my_ants, enemy_ants, threat_distance)
+        combat_scores = battle_influence.get_combat_scores(self.gamestate, my_ants, enemy_ants, influence_by_threat, threat_distance)
+
+        # print (influence_by_threat)
+        # print (combat_scores)
+        self.assertTrue(combat_scores[(3,4)] > combat_scores[(3,5)])
+        self.assertTrue(combat_scores[(4,3)] > combat_scores[(4,4)])
+        self.assertTrue(combat_scores[(5,2)] == combat_scores[(5,3)])
+
+    def test_get_combat_scores_4(self):
+        """
+ 23456789
+2.b.b..
+3..b.b.
+4......
+5......
+6.a..a.
+7......
+        """
+        data = """
+turn 1
+a 2 3 1 
+a 3 5 1 
+a 3 4 1 
+a 3 6 1 
+a 6 3 0 
+a 6 6 0
+go
+        """
+        self.gamestate.update(data)
+        my_ants = self.gamestate.my_ants()
+        enemy_ants = self.gamestate.enemy_ants()
+        threat_distance = self.gamestate.attackradius2
+        influence_by_owner = battle_influence.get_influence_by_owner(self.gamestate, my_ants, enemy_ants, threat_distance)
+        influence_by_threat = battle_influence.get_influence_by_threat(self.gamestate, my_ants, enemy_ants, threat_distance)
+        combat_scores = battle_influence.get_combat_scores(self.gamestate, my_ants, enemy_ants, influence_by_threat, threat_distance)
+
+        print("")
+        print(influence_by_owner[0])
+        print("")
+        print(influence_by_owner[1])
 
 if __name__ == '__main__':
     unittest.main()

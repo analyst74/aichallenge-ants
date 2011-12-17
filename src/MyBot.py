@@ -16,7 +16,7 @@ import battle_line2 as battle
 import sys, os, pickle, traceback, math
 
 DETAIL_LOG = False
-DETAIL_LOG_START = 450
+DETAIL_LOG_START = 100
 
 # define a class with a do_turn method
 # the Gamestate.run method will parse and update bot input

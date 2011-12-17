@@ -9,7 +9,6 @@ cmd_folder = os.path.dirname(os.path.abspath('.'))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
 from influence5 import Influence as Influence5
-from influence6 import Influence as Influence6
 import battle_line as battle
 from linear_influence3 import LinearInfluence as LinearInfluence3
     
@@ -43,10 +42,8 @@ def setup_inf():
 
     inf1 = Influence5(gamestate)
     initiate_inf(inf1)
-    inf2 = Influence6(gamestate)
-    initiate_inf(inf2)
     
-    return inf1, inf2
+    return inf1
 
 def initiate_inf(inf):
     for i in xrange(12):

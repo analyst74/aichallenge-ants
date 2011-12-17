@@ -75,22 +75,22 @@ influence_sources = [((row,col), inf_value) for row in range(inf2.gamestate.rows
 def inf_test():
     setup = """
 import profiler
-inf1, inf2, inf3 = profiler.setup_inf()
+inf1 = profiler.setup_inf()
     """
     s1 = 'inf1.diffuse()'
     t1 = timeit.Timer(s1, setup)
     print 't1.timeit'
     print t1.timeit(number=10)
     
-    s2 = 'inf2.diffuse()'
-    t2 = timeit.Timer(s2, setup)
-    print 't2.timeit'
-    print t2.timeit(number=10)  
+    # s2 = 'inf2.diffuse()'
+    # t2 = timeit.Timer(s2, setup)
+    # print 't2.timeit'
+    # print t2.timeit(number=10)  
     
-    s3 = 'inf3.diffuse()'
-    t3 = timeit.Timer(s3, setup)
-    print 't3.timeit'
-    print t3.timeit(number=10)  
+    # s3 = 'inf3.diffuse()'
+    # t3 = timeit.Timer(s3, setup)
+    # print 't3.timeit'
+    # print t3.timeit(number=10)  
     
 
 def get_combat_zone_test():
@@ -122,10 +122,16 @@ loc2 = (10,10)
     print t1.timeit(number=10000)
     print t2.timeit(number=10000)  
 
+def battle_line2_do_combat_test():
+    pickle_file = open('test_data/battle_line2_profile/turn_270.gamestate', 'r')
+    gamestate = pickle.load(pickle_file)
+    pickle_file.close()
     
+    battle.do_combat(gamestate)
+
 if __name__ == '__main__':
-    linear_map_set_test()
+    #linear_map_set_test()
     #merge_map_test()
-    #inf_test()
+    inf_test()
     #distance_test()
     #get_combat_zone_test()

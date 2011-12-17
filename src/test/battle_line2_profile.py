@@ -4,53 +4,35 @@
 # Author: Bill Y
 # License: all your base are belong to us
 
-import cProfile, os, sys, numpy, timeit
+import cProfile, os, sys, numpy, timeit, pickle
 cmd_folder = os.path.dirname(os.path.abspath('.'))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
-import gamestate as gs, battle_line2 as battle
+import gamestate as gs
+import battle_line2 as battle
+import cython_ext2
+import numpy as np
 
 def setup_gamestate():
-    gamestate = gs.GameState()
-    setup_data = """
-turn 0
-loadtime 3000  
-turntime 1000  
-rows 42
-cols 38
-turns 500  
-viewradius2 55  
-attackradius2 5  
-spawnradius2 1  
-player_seed 42
-ready
-    """
-    gamestate.setup(setup_data)
-    turn_data = """
-turn 1
-a 2 3 1
-a 2 4 1
-a 2 5 1
-a 2 6 1
-a 2 7 1
-a 3 3 1
-a 3 4 1
-a 3 5 1
-a 3 6 1
-a 3 7 1
-a 6 3 0
-a 6 4 0
-a 6 5 0
-a 6 6 0
-a 7 3 0
-a 7 4 0
-a 7 5 0
-a 7 6 0
-go
-    """
-    gamestate.update(turn_data)
+    'we use random_walk 10-2'
+    pickle_file = open('test_data/battle_line2_profile/turn_270.gamestate', 'r')
+    gamestate = pickle.load(pickle_file)
+    pickle_file.close()
     return gamestate
+
+def pre_calc_distance(gamestate):
+    gamestate.distance_table = {}
+    for row in range(gamestate.rows):
+        for col in range(gamestate.cols):
+            gamestate.distance_table[(row,col)] = np.zeros((gamestate.rows, gamestate.cols), dtype=int) + 100
+            for d_row in range(row-5, row+6):
+                for d_col in range(col-5, col+6):
+                    d_row = d_row % gamestate.rows
+                    d_col = d_col % gamestate.cols
+                    gamestate.distance_table[(row,col)][d_row, d_col] = \
+                        cython_ext2.euclidean_distance2(row, col, d_row, d_col, gamestate.rows, gamestate.cols)
 
 if __name__ == '__main__':
     gamestate = setup_gamestate()
+    pre_calc_distance(gamestate)
     cProfile.run('battle.do_combat(gamestate)')

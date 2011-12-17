@@ -21,38 +21,6 @@ AIM = {'n': (-1, 0),
        's': (1, 0),
        'w': (0, -1)}
        
-GAUSSIAN_KERNEL = [0.006, 0.061, 0.242, 0.383, 0.242, 0.061, 0.006]
-       
-def gaussian_blur(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim=2] gs_map):
-    'diffuse inf_map with gaussian kernel, modified for water'
-    assert inf_map.dtype == DTYPEF and gs_map.dtype == DTYPEI
-    cdef int rows = inf_map.shape[0]
-    cdef int cols = inf_map.shape[1]
-    cdef int row = 0
-    cdef int col = 0
-    cdef int i = 0
-    cdef float temp = 0.0
-    cdef DTYPEF_t diffuse_value
-    cdef int neighbour_count = 0
-    cdef np.ndarray[DTYPEF_t, ndim=2] buffer = np.zeros([rows, cols], dtype=DTYPEF) 
-    
-    for row in range(rows):
-        for col in range(cols):
-            if gs_map[row,col] != WATER:
-                temp = 0
-                for i in range(7):
-                    temp +=  inf_map[row,(col-3+i) % cols] * GAUSSIAN_KERNEL[i]
-                buffer[row,col] = temp
-    for row in range(rows):
-        for col in range(cols):
-            if gs_map[row,col] != WATER:
-                temp = 0
-                for i in range(7):
-                    temp +=  buffer[(row-3+i) % rows,col] * GAUSSIAN_KERNEL[i]
-                buffer[row,col] = temp
-
-    return buffer
-       
 def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim=2] gs_map, float cutoff):
     'diffuse inf_map'
     assert inf_map.dtype == DTYPEF and gs_map.dtype == DTYPEI
@@ -65,6 +33,7 @@ def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim
     cdef DTYPEF_t diffuse_value
     cdef int neighbour_count = 0
     cdef np.ndarray[DTYPEF_t, ndim=2] buffer = np.zeros([rows, cols], dtype=DTYPEF) 
+    #cdef char* direction
     #buffer = np.zeros([rows,cols])
     
     # find surrounding non-water nodes and diffuse to them
@@ -117,3 +86,36 @@ def merge_linear_map(np.ndarray[DTYPEI_t, ndim=3] np_temp_maps, np.ndarray[DTYPE
                         min_val = loc_values[-1]
             if min_val < magical_number:
                 inf_map[row,col] = min_val + 0.001 * sum(loc_values)
+
+def euclidean_distance2(int row1, int col1, int row2, int col2, rows, cols):
+    'calculate the euclidean distance between to locations'
+    
+    d_col = min(abs(col1 - col2), cols - abs(col1 - col2))
+    d_row = min(abs(row1 - row2), rows - abs(row1 - row2))
+    return d_row**2 + d_col**2
+    
+def get_distance_map(int rows, int cols, ant_group, cutoff):
+    'from start_loc, find enemy ant within distance_limit'
+    # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
+    # create a queue Q
+    list_q = deque(ant_group)
+    # mark source, which has its value being its root, used for calculating distance
+    marked_dict = {ant:ant for ant in ant_group}
+    
+    map = np.zeros((rows, cols), dtype=int) - 1
+    while len(list_q) > 0:
+        # dequeue an item from Q into v
+        v = list_q.popleft()
+        # for each edge e incident on v in Graph:
+        for w in gamestate.neighbour_table[v]:
+            distance = min([gamestate.euclidean_distance2(w, loc) for loc in ant_group])
+            # set map
+            map[w] = distance
+            # if w is not marked
+            if w not in marked_dict and w not in gamestate.water_list and distance < cutoff:                
+                # mark w
+                marked_dict[w] = marked_dict[v]
+                # enqueue w onto Q
+                list_q.append(w) 
+                        
+    return map

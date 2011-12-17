@@ -5,6 +5,7 @@
 # License: all your base are belong to us
 
 import sys, random, time, numpy as np
+import cython_ext2
 from core import *
 from math import sqrt
 from collections import defaultdict
@@ -47,6 +48,7 @@ class GameState():
         # move_table is in the format of destination_location:ant_location
         # using destination as key for faster invalid move check
         self.move_table = {} 
+        self.distance_table = {}
 
     def setup(self, data):
         'parse initial input and setup starting game state'
@@ -62,7 +64,8 @@ class GameState():
                 elif key == 'player_seed':
                     random.seed(int(tokens[1]))
                 elif key == 'turntime':
-                    self.turntime = min(600, int(tokens[1]))
+                    # self.turntime = min(600, int(tokens[1]))
+                    self.turntime = int(tokens[1])
                 elif key == 'loadtime':
                     self.loadtime = int(tokens[1])
                 elif key == 'viewradius2':
@@ -93,7 +96,17 @@ class GameState():
                         d_row%self.rows-self.rows,
                         d_col%self.cols-self.cols
                     ))
-                            
+
+        for row in range(self.rows):
+            for col in range(self.cols):
+                self.distance_table[(row,col)] = np.zeros((self.rows, self.cols), dtype=int) + 100
+                for d_row in range(row-5, row+6):
+                    for d_col in range(col-5, col+6):
+                        d_row = d_row % self.rows
+                        d_col = d_col % self.cols
+                        self.distance_table[(row,col)][d_row, d_col] = \
+                            cython_ext2.euclidean_distance2(row, col, d_row, d_col, self.rows, self.cols)
+        
     def update(self, data):
         'parse engine input and update the game state'        
         # start timer
@@ -277,8 +290,16 @@ class GameState():
         d_col = min(abs(col1 - col2), self.cols - abs(col1 - col2))
         d_row = min(abs(row1 - row2), self.rows - abs(row1 - row2))
         return d_row + d_col
+        
+    def euclidean_distance2_lookup(self, loc1, loc2):
+        return self.distance_table[loc1][loc2]
 
     def euclidean_distance2(self, loc1, loc2):
+        row1, col1 = loc1
+        row2, col2 = loc2
+        return cython_ext2.euclidean_distance2(row1, col1, row2, col2, self.rows, self.cols)
+        
+    def euclidean_distance2_old(self, loc1, loc2):
         'calculate the euclidean distance between to locations'
         
         row1, col1 = loc1

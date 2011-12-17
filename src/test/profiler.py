@@ -4,8 +4,7 @@
 # Author: Bill Y
 # License: all your base are belong to us
 
-import pickle, cProfile
-import os, sys, numpy, timeit, pickle
+import cProfile, os, sys, numpy, timeit, pickle
 cmd_folder = os.path.dirname(os.path.abspath('.'))
 if cmd_folder not in sys.path:
     sys.path.insert(0, cmd_folder)
@@ -80,9 +79,6 @@ def profile_combat_zone():
     cProfile.run('battle1.get_combat_zones(gs)')
     cProfile.run('battle2.get_combat_zones(gs)')
 
-def profile_overall():
-    ready, turns = setup_overall()
-    
 if __name__ == '__main__':
     inf1, inf2 = setup_inf()
     cProfile.run('inf1.diffuse()')

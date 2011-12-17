@@ -16,65 +16,80 @@ ZONE_BORDER = [6, 11, 18, 27]
 def do_combat(gamestate):
     enemy_ants = [ant for ant, owner in gamestate.enemy_ants()]
     enemy_distance_map = get_distance_map(gamestate, enemy_ants, ZONE_BORDER[3])
-    combat_groups = get_combat_groups(gamestate, enemy_distance_map)
+    combat_groups = get_combat_groups(gamestate)
     if combat_groups is None:
         return
-        
+    perf_logger.debug('get_combat_groups.finish = %s' % str(gamestate.time_elapsed()))    
+    
     for combat_group in combat_groups:
         debug_logger.debug('processing combat for group %s' % str(combat_group))
         do_group_combat(gamestate, combat_group, enemy_distance_map)
+        perf_logger.debug('do_group_combat(for 1 group).finish = %s' % str(gamestate.time_elapsed()))
         
 def do_group_combat(gamestate, combat_group, enemy_distance_map):
     my_group, enemy_group = combat_group
-    # either group is empty, invalid zone
-    if len(my_group) == 0 or len(enemy_group) == 0:
-        return
-    # if we have only 1 ant, we can't win, skip and leave it to avoidance explore
-    if len(my_group) == 1:
-        return
         
-    kill_moves = generate_move(gamestate, my_group, enemy_distance_map, 1, ZONE_BORDER[0])
-    for group_move in kill_moves:
-        if evaluate_move(gamestate, group_move, enemy_group, enemy_distance_map) > 0:
-            debug_logger.debug('found good kill move %s' % str(group_move))
-            execute_group_move(gamestate, my_group, group_move)
-            return
+    perf_logger.debug('do_group_combat.kill evaluation = %s' % str(gamestate.time_elapsed()))   
+    debug_logger.debug('getting kill moves')
+    kill_move, kill_score = get_best_move(gamestate, my_group, enemy_group, enemy_distance_map, 1, ZONE_BORDER[0])
+    if int(kill_score) > 0:    
+        debug_logger.debug('executing kill move %s' % (str(kill_move)))
+        execute_group_move(gamestate, my_group, kill_move)
+        return
+    
+    perf_logger.debug('do_group_combat.danger evaluation = %s' % str(gamestate.time_elapsed()))   
+    debug_logger.debug('getting danger moves')
+    danger_move, danger_score = get_best_move(gamestate, my_group, enemy_group, enemy_distance_map, ZONE_BORDER[0], ZONE_BORDER[1])
+    if int(danger_score) >= 0:    
+        debug_logger.debug('executing danger move %s' % (str(danger_move)))
+        execute_group_move(gamestate, my_group, danger_move)
+        return
             
-    danger_moves = generate_move(gamestate, my_group, enemy_distance_map, ZONE_BORDER[0], ZONE_BORDER[1])
-    for group_move in danger_moves:
-        if evaluate_move(gamestate, group_move, enemy_group, enemy_distance_map) >= 0:
-            debug_logger.debug('found good danger move %s' % str(group_move))
-            execute_group_move(gamestate, my_group, group_move)
-            return
-
+    perf_logger.debug('do_group_combat.safe evaluation = %s' % str(gamestate.time_elapsed()))   
     safe_moves = generate_move(gamestate, my_group, enemy_distance_map, ZONE_BORDER[1], ZONE_BORDER[2])
     debug_logger.debug('moving %s to safety %s' % (str(my_group), str(safe_moves)))
     execute_group_move(gamestate, my_group, safe_moves[0])
+
+def get_best_move(gamestate, my_group, enemy_group, enemy_distance_map, min_distance, max_distance):
+    moves = generate_move(gamestate, my_group, enemy_distance_map, min_distance, max_distance)
+    # debug_logger.debug('moves = %s' % str(moves))
+    best_move = []
+    best_score = -10
+    for move in moves:
+        total_distance = sum([enemy_distance_map[ant] for ant in move])        
+        score = evaluate_move(gamestate, move, enemy_group) - total_distance / 1000.0
+        debug_logger.debug('evaluating kill move %s, %s' % (str(move), score))
+        if score > best_score:
+            best_move = move
+            best_score = score
+
+    return best_move, best_score
     
 def execute_group_move(gamestate, my_group, group_move):
     for i in range(len(my_group)):
         gamestate.issue_order_by_location(my_group[i], group_move[i])
             
-def evaluate_move(gamestate, my_group, enemy_group, enemy_distance_map):
-    my_distance_map = get_distance_map(gamestate, my_group, ZONE_BORDER[0])    
+def evaluate_move(gamestate, my_group, enemy_group):
+    # debug_logger.debug('my_move = %s' % str(my_group))
     
-    my_danger_ants = [ant for ant in my_group if enemy_distance_map[ant] >= 1 
-                        and enemy_distance_map[ant] < ZONE_BORDER[1]]
-    enemy_danger_ants = [ant for ant in enemy_group if my_distance_map[ant] >= 1
-                        and my_distance_map[ant] < ZONE_BORDER[1]]
-    scores = [len(my_danger_ants) - len(enemy_danger_ants)]
+    my_distance_map = get_distance_map(gamestate, my_group, ZONE_BORDER[1])    
+        
+    enemy_kill_moves = generate_move(gamestate, enemy_group, my_distance_map, 1, ZONE_BORDER[1])
     
-    enemy_kill_moves = generate_move(gamestate, enemy_group, my_distance_map, 1, ZONE_BORDER[0])
-    enemy_danger_moves = generate_move(gamestate, enemy_group, my_distance_map, ZONE_BORDER[0], ZONE_BORDER[1])
-    
-    for move in enemy_kill_moves + enemy_danger_moves:    
+    worst_score = 10
+    for enemy_move in enemy_kill_moves:
+        enemy_distance_map = get_distance_map(gamestate, enemy_move, ZONE_BORDER[1]) 
         my_kill_ants = [ant for ant in my_group if enemy_distance_map[ant] >= 1 
                         and enemy_distance_map[ant] < ZONE_BORDER[0]]
-        enemy_kill_ants = [ant for ant in enemy_group if my_distance_map[ant] >= 1
+        enemy_kill_ants = [ant for ant in enemy_move if my_distance_map[ant] >= 1
                         and my_distance_map[ant] < ZONE_BORDER[0]]
-        scores.append(len(my_danger_ants) - len(enemy_danger_ants))
-        
-    return min(scores)
+
+        score = len(my_kill_ants) - len(enemy_kill_ants) 
+        # debug_logger.debug('enemy_move and score: %s : %d - %d' % (str(enemy_move), len(my_kill_ants), len(enemy_kill_ants)))
+        if score < worst_score:
+            worst_score = score
+            
+    return worst_score
 
 def generate_move(gamestate, ant_group, opponent_distance_map, min_distance, max_distance):
     moves = generate_move_recurse(gamestate, ant_group, opponent_distance_map, min_distance, max_distance)
@@ -142,7 +157,7 @@ def get_distance_map(gamestate, ant_group, cutoff):
     # mark source, which has its value being its root, used for calculating distance
     marked_dict = {ant:ant for ant in ant_group}
     
-    map = np.zeros((gamestate.rows, gamestate.cols), dtype=int)
+    map = np.zeros((gamestate.rows, gamestate.cols), dtype=int) - 1
     while len(list_q) > 0:
         # dequeue an item from Q into v
         v = list_q.popleft()
@@ -160,37 +175,72 @@ def get_distance_map(gamestate, ant_group, cutoff):
                         
     return map
                 
-# def get_danger_map(gamestate, ant_group):
-    # danger_map = np.zeros((gamestate.rows, gamestate.cols), dtype=bool)
-    # for ant in enemy_group:
-        # for row in range(ant[0]-3, ant[0]+4):
-            # for col in range(ant[1]-3, ant[1]+4):
-                # danger_map[ant] = danger_map[row,col] or danger_zone[row,col]
-    # return danger_map
-
-def get_combat_groups(gamestate, enemy_distance_map):
-    my_combat_ant_by_distance = {ant:enemy_distance_map[ant] for ant in gamestate.my_unmoved_ants() if enemy_distance_map[ant] > 0}
-    my_combat_ants = [ant for ant, distance in sorted(my_combat_ant_by_distance.iteritems(), key=operator.itemgetter(1), reverse=True)]
-    enemy_ants = [ant_loc for ant_loc, owner in gamestate.enemy_ants()]    
+def get_combat_groups(gamestate):
+    enemy_ants = [ant_loc for ant_loc, owner in gamestate.enemy_ants()]
+    enemy_all_distance_map = get_distance_map(gamestate, enemy_ants, 5)
+    enemy_groups = []
+    while len(enemy_ants) > 0:
+        enemy_group = bfs_get_group(gamestate, enemy_ants, enemy_all_distance_map)
+        enemy_groups.append(enemy_group)
     
-    combined_distance_map = get_distance_map(gamestate, my_combat_ants + enemy_ants, ZONE_BORDER[0])
-    print(combined_distance_map[0:10,0:10])
+    enemy_reach_distance_map = get_distance_map(gamestate, enemy_ants, ZONE_BORDER[2])
+    my_combat_ant_by_distance = {ant:enemy_reach_distance_map[ant] for ant in gamestate.my_unmoved_ants() if enemy_reach_distance_map[ant] >= 0}
+    my_combat_ants = [ant for ant, distance in sorted(my_combat_ant_by_distance.iteritems(), key=operator.itemgetter(1), reverse=True)]
     
     combat_groups = []
-    while len(my_combat_ants) > 0 and len(enemy_ants) > 0:
-        my_group, enemy_group = bfs_get_combat_group(gamestate, combined_distance_map, my_combat_ants, enemy_ants)
+    for enemy_group in enemy_groups:
+        if len(my_combat_ants) > 0:
+            enemy_group_distance_map = get_distance_map(gamestate, enemy_group, ZONE_BORDER[2])
+            my_group = bfs_get_group(gamestate, my_combat_ants, enemy_group_distance_map)
+            # set open fighters to gamestate, later used by planner
+            if len(my_group) == len(enemy_group) == 1:
+                gamestate.my_combat_explorers.extend(my_group)
+            elif len(my_group) > 0 and len(enemy_group) > 0:
+                gamestate.my_fighters.extend(my_group)
+                combat_groups.append((my_group, enemy_group))
+    
+    # combined_distance_map = get_distance_map(gamestate, my_combat_ants + enemy_ants, ZONE_BORDER[0])
+    
+    # combat_groups = []
+    # while len(my_combat_ants) > 0 and len(enemy_ants) > 0:
+        # my_group, enemy_group = bfs_get_combat_group(gamestate, combined_distance_map, my_combat_ants, enemy_ants)
 
-        print(my_group)
-        print(enemy_group)
-        # set open fighters to gamestate, later used by planner
-        if len(my_group) > 1:
-            gamestate.my_fighters.extend(my_group)
-            combat_groups.append((my_group, enemy_group))
-        elif len(my_group) == 1:
-            gamestate.my_combat_explorers.extend(my_group)
+        # if len(my_group) == len(enemy_group) == 1:
+            # gamestate.my_combat_explorers.extend(my_group)
+        # elif len(my_group) > 0 and len(enemy_group) > 0:
+            # gamestate.my_fighters.extend(my_group)
+            # combat_groups.append((my_group, enemy_group))
             
     return combat_groups
     
+def bfs_get_group(gamestate, ants, distance_map):
+    'returns (my_group, enemy_group)'    
+    start_ant = ants.pop()
+    my_group = [start_ant]
+    
+    # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
+    # create a queue Q
+    list_q = deque([start_ant])
+    # mark source, which has its value means nothing
+    marked_dict = {start_ant:True}
+    
+    while len(list_q) > 0:
+        # dequeue an item from Q into v
+        v = list_q.popleft()
+        # for each neighbour of v
+        for w in gamestate.neighbour_table[v]:
+            # if w is not marked
+            if w not in marked_dict and w not in gamestate.water_list and distance_map[w] >= 0:   
+                # mark w
+                marked_dict[w] = True
+                # enqueue w onto Q
+                list_q.append(w) 
+                if w in ants:
+                    my_group.append(w)
+                    ants.remove(w)
+                    
+    return my_group
+
     
 def bfs_get_combat_group(gamestate, enemy_distance_map, my_combat_ants, enemy_ants):
     'returns (my_group, enemy_group)'    
@@ -213,7 +263,7 @@ def bfs_get_combat_group(gamestate, enemy_distance_map, my_combat_ants, enemy_an
                 enemy_group.append(w)
                 enemy_ants.remove(w)
             # if w is not marked
-            if w not in marked_dict and w not in gamestate.water_list and enemy_distance_map[w] > 0:   
+            if w not in marked_dict and w not in gamestate.water_list and enemy_distance_map[w] >= 0:   
                 # mark w
                 marked_dict[w] = True
                 # enqueue w onto Q

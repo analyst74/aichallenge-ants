@@ -143,10 +143,10 @@ go
         gamestate=self.gamestate
         self.gamestate.update(data)
         
-        enemy_ants = [ant for ant, owner in gamestate.enemy_ants()]
-        enemy_distance_map = get_distance_map(gamestate, enemy_ants, ZONE_BORDER[3])
+        # enemy_ants = [ant for ant, owner in gamestate.enemy_ants()]
+        # enemy_distance_map = get_distance_map(gamestate, enemy_ants, ZONE_BORDER[3])
 
-        combat_groups = get_combat_groups(gamestate, enemy_distance_map)
+        combat_groups = get_combat_groups(gamestate)
                 
         self.assertTrue((7,4) in combat_groups[0][0])
         self.assertTrue((7,5) in combat_groups[0][0])
@@ -176,15 +176,70 @@ a 7 3 0
 go
         """
         self.gamestate.update(data)
-        enemy_ants = [ant for ant, owner in self.gamestate.enemy_ants()]
-        enemy_distance_map = get_distance_map(self.gamestate, enemy_ants, ZONE_BORDER[3])
-        print('-------test_get_combat_groups_2')
-        combat_groups = get_combat_groups(self.gamestate, enemy_distance_map)
-        print('======')
+        # enemy_ants = [ant for ant, owner in self.gamestate.enemy_ants()]
+        # enemy_distance_map = get_distance_map(self.gamestate, enemy_ants, ZONE_BORDER[3])
+        # print('-------test_get_combat_groups_2')
+        my_group, enemy_group = get_combat_groups(self.gamestate)[0]
+        # print(my_group)
+        # print('======')
         
+        self.assertTrue(len(my_group), 2)
         self.assertEqual(my_group.index((5,4)), 0)
         self.assertEqual(my_group.index((6,4)), 1)
-        self.assertEqual(my_group.index((7,3)), 2)
+        
+    def test_get_combat_groups_3(self):
+        """
+ 23456789
+2......
+3...b..
+4......
+5......
+6......
+7..aa..
+8.aa...
+        """
+        data = """
+turn 1
+a 7 4 0
+a 7 5 0
+a 8 4 0
+a 8 3 0
+a 3 5 1
+go
+        """
+        gamestate=self.gamestate
+        self.gamestate.update(data)
+        
+        # enemy_ants = [ant for ant, owner in gamestate.enemy_ants()]
+        # enemy_distance_map = get_distance_map(gamestate, enemy_ants, ZONE_BORDER[3])
+
+        # print('----')
+        combat_groups = get_combat_groups(gamestate)                
+        # print(combat_groups)
+        
+        self.assertTrue((7,4) in combat_groups[0][0])
+        self.assertTrue((7,5) in combat_groups[0][0])
+        self.assertTrue((8,4) in combat_groups[0][0])
+        self.assertTrue((8,3) not in combat_groups[0][0])
+        self.assertTrue((3,5) in combat_groups[0][1])
+        
+    def test_get_combat_groups_4(self):
+        data = """
+turn 1
+a 7 9 0
+a 9 6 1
+a 10 7 1
+a 10 14 1
+a 13 14 0
+go
+        """
+        gamestate=self.gamestate
+        self.gamestate.update(data)
+        
+        combat_groups = get_combat_groups(gamestate)  
+        print(combat_groups)
+        
+        self.assertEqual(len(combat_groups), 2)
         
     def test_do_combat_1(self):
         """
@@ -258,11 +313,11 @@ go
         self.gamestate.update(data)
         
         do_combat(self.gamestate)
-        print(self.gamestate.move_table)
-        self.assertEqual(self.gamestate.move_table[(7,4)], (6,4))
-        self.assertEqual(self.gamestate.move_table[(7,5)], (6,5))
+        # print(self.gamestate.move_table)
+        self.assertEqual(self.gamestate.move_table[(6,3)], (6,4))
+        self.assertEqual(self.gamestate.move_table[(6,4)], (6,5))
         
-    def test_do_combat_3(self):
+    def test_do_combat_4(self):
         """
  23456789
 2..b....
@@ -292,61 +347,28 @@ go
         self.assertEqual(self.gamestate.move_table[(5,3)], (5,4))
         self.assertEqual(self.gamestate.move_table[(5,4)], (6,4))
         
-    def test_do_combat_4(self):
+    def test_do_combat_5(self):
         data = """
 turn 1
-a 20 14 0 
-a 21 16 0 
-a 1 28 0 
-a 1 30 0 
-a 26 25 0 
-a 22 16 0 
-a 23 22 0 
-a 24 22 0 
-a 1 26 0
-a 18 22 1 
-a 23 26 1 
-a 19 18 1 
-a 18 16 1 
-a 17 14 1 
-a 18 20 1 
-a 17 18 1 
-a 17 19 1 
-a 21 26 1 
-a 18 17 1 
-a 4 29 1 
-a 16 13 1
-w 19 17
-w 20 18
-w 20 19
-w 20 20
-w 23 17
-w 22 18
-w 22 19
-w 22 20
-f 25 15
+a 10 26 1
+a 10 28 1
+a 11 26 1
+a 12 25 1
+a 13 29 0
 go
         """
         gamestate = self.gamestate
         self.gamestate.update(data)
-        enemy_ants = [ant for ant,owner in gamestate.enemy_ants()]
-        enemy_distance_map = get_distance_map(self.gamestate, enemy_ants, ZONE_BORDER[3])
         
-        # groups = get_combat_groups(self.gamestate, enemy_distance_map)
-        # my_group, enemy_group = groups[1]
-        # print(my_group)
-        # print(enemy_group)
-        # kill_moves = generate_move(self.gamestate, my_group, enemy_distance_map, 1, ZONE_BORDER[0])
-        # for group_move in kill_moves:
-            # print('----')
-            # print(group_move)
-            # score = evaluate_move(gamestate, my_group, enemy_group, enemy_distance_map)
-            # print(score)
-            # print('====')
+        # print('---')
+        # enemy_ants = [ant for ant, owner in gamestate.enemy_ants()]
+        # enemy_distance_map = get_distance_map(gamestate, enemy_ants, ZONE_BORDER[3])
+        # combat_groups = get_combat_groups(gamestate)
+        # do_group_combat(gamestate, combat_groups[0], enemy_distance_map)
         
-        # do_combat(self.gamestate)
-        # self.assertEqual(self.gamestate.move_table[(6,4)], (5,4))
-        # self.assertEqual(self.gamestate.move_table[(7,4)], (6,4))
+        # do_combat(gamestate)
+        # print(gamestate.move_table)
+        # print('===')
 
 if __name__ == '__main__':
     unittest.main()

@@ -7,6 +7,14 @@
 from core import *
 import path
 
+def do_combat(gamestate):
+    zones = get_combat_zones(self.gamestate)
+    
+    if zones is not None:
+        debug_logger.debug('zones.count = %d' % len(zones))
+        for zone in zones:
+            do_zone_combat(self.gamestate, zone)
+
 def get_group_formations(gamestate, group):
     'get all possible formation of a group in a single turn'
     # special: ant indexes do not change, in other words, actual orders needed to get from 

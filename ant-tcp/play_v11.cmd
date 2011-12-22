@@ -1,0 +1,1 @@
+python tcpclient.py ants.fluxid.pl 2081 "python ..\archive\v11.0\MyBot.py" analyst74_v11 123456 %*

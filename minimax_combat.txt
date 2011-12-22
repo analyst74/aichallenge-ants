@@ -1,0 +1,39 @@
+The final idea I implemented, but not able to submit by the deadline due to some corner case bug and performance issues(un-optimized CPython). In local testing with larger timeout, it beats my current bot (ranked around 50) easily.
+
+It's based on the normal minimax/alpha-beta pruning technique, with some additional distance-based move elimination.
+
+[b]Definitions[/b]
+
+[i]kill zone[/i] -- area within attack radius of an opponent's ant
+
+[i]kill zone + 1[/i] -- kill zone can be reached with 1 move, this is close to, but NOT equals to the mathematical equivalent.
+
+
+[b]Assumption[/b]: if more of my ants are within kill zone than enemy's ants, it's good.
+Note: in some cases, having more ants will still result in even trade, but in general, this assumption will not result in a losing battle.
+
+ 
+ 
+With that assumption in mind, following steps are taken:
+
+[b]Grouping[/b]
+group all combat ants into a list of (enemy_group, my_group) combinations, here is how mine works.
+
+ 1. find all of my ants that can get involved in combat this turn --
+    any ants that can move into combat distance of enemy ant within 2
+    moves. (this step is optional)
+ 2. group enemy ants into natural groups
+ 3. for each enemy group, find all my ants that they can reach within 2 steps
+
+[b]resolve combat for each group[/b]
+
+ 1. generate moves for my group that result in closer overall approximity to enemy, in most cases, this will just be all my ants moving toward enemy.
+ 2. against each of my move, generate all enemy moves that are within kill zone, using the one with most enemy ant within kill zone
+ 3. evaluate each of the move, giving it score = (my ant in kill zone) - (enemy ant in kill zone)
+ 4. if the best move reslut in positive score, execute that move and exit
+ 5. generate moves for my group that is outside kill zone but within kill zone + 1
+ 6. do the same for all moves as in step 2~4
+ 7. if still no good move is found, my are sincerely outnumbered, move all my ants further from enemy
+ 
+this will generally reduce moves to evaluate between O(n) to O(3^n) as opposed to O(5^n), n being the number of ants in each (enemy_group, my_group) combination; pruning in step 2 will reduce the best case to O(1); removing duplicate moves will, in theory, reduce the worst case close to O(n) instead of O(3^n).
+

@@ -18,7 +18,7 @@ class Planner():
         self.invisible_area_value = -100
         #self.my_combat_explorer_value = 0
         self.enemy_ant_value = 0
-
+                
     def update_food_influence(self, food_influence):
         influence_sources = [(loc, self.food_value) for loc in self.gamestate.food_list]
         food_influence.set_influence(influence_sources, True)

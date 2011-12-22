@@ -18,7 +18,10 @@ class Planner():
         self.invisible_area_value = -100
         #self.my_combat_explorer_value = 0
         self.enemy_ant_value = 0
-
+        self.explore_method = 'expansion'
+        # for an unseen space, how much do we believe it's still safe
+        self.safe_belief = np.zeros((gamestate.rows, gamestate.cols), dtype=int)
+                
     def update_food_influence(self, food_influence):
         influence_sources = [(loc, self.food_value) for loc in self.gamestate.food_list]
         food_influence.set_influence(influence_sources, True)
@@ -46,8 +49,36 @@ class Planner():
         # special for defense, we want to make the hill less desirable, so it doesn't get blocked
         if my_hill is not None:
             defense_influence.map[my_hill] = 0
-            
+        
     def update_explore_influence(self, explore_influence):
+        if self.explore_method == 'cluster':
+            debug_logger.debug('update_explore_influence == cluster') 
+            self.update_explore_influence_cluster(explore_influence)
+        else:
+            debug_logger.debug('update_explore_influence == expansion')
+            self.update_explore_influence_expansion(explore_influence)
+    
+    def update_explore_influence_cluster(self, explore_influence):
+        # visible tiles
+        for row in range(self.gamestate.rows):
+            for col in range(self.gamestate.cols):
+                if self.gamestate.visible((row,col)):
+                    self.safe_belief[row,col] = 1
+                else:
+                    self.safe_belief[row,col] -= 0.1
+                explore_influence.map[row,col] += self.my_explorer_value * self.safe_belief[row,col]
+        # my explorers
+        for ant_loc in [ant for ant in self.gamestate.my_ants() 
+                        if ant not in self.gamestate.my_fighters
+                        and ant not in self.gamestate.my_combat_explorers] :
+            explore_influence.map[ant_loc] +=  self.my_explorer_value * 0.1
+            
+        # my fighters
+        debug_logger.debug('update_explore_influence setting my fighters: %s' % str(self.gamestate.my_fighters))
+        for ant_loc in self.gamestate.my_fighters:
+            explore_influence.map[ant_loc] += self.my_fighter_value
+
+    def update_explore_influence_expansion(self, explore_influence):                    
         # my explorers
         for ant_loc in [ant for ant in self.gamestate.my_ants() 
                         if ant not in self.gamestate.my_fighters
@@ -74,3 +105,8 @@ class Planner():
         # self.my_fighter_value = 0 - 1 - (self.gamestate.winning_percentage / 0.3 % 1)
         # self.enemy_ant_value = 0 - (self.gamestate.winning_percentage / 0.3 % 1) * 2
         self.enemy_hill_value = -15 + -15 * int(self.gamestate.winning_percentage / 0.2)
+        self.enemy_ant_value = -1 * int(self.gamestate.winning_percentage / 0.2)
+        if self.gamestate.winning_percentage > 0.2:
+            self.explore_method = 'cluster'
+        else:
+            self.explore_method = 'expansion'

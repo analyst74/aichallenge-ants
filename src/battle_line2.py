@@ -22,6 +22,8 @@ def do_combat(gamestate):
         return
     perf_logger.debug('get_combat_groups.finish = %s' % str(gamestate.time_elapsed()))    
     
+    perf_logger.debug('total combat groups = %d' % len(combat_groups)) 
+    perf_logger.debug('combat_groups = %s' % str(combat_groups))
     for combat_group in combat_groups:
         debug_logger.debug('processing combat for group %s' % str(combat_group))
         do_group_combat(gamestate, combat_group, enemy_distance_map)
@@ -56,6 +58,7 @@ def do_group_combat(gamestate, combat_group, enemy_distance_map):
     execute_group_move(gamestate, my_group, safe_moves[0])
 
 def get_best_move(gamestate, my_group, enemy_group, enemy_distance_map, min_distance, max_distance):
+    perf_logger.debug('get_best_move.start = %s' % str(gamestate.time_elapsed()))   
     moves = generate_move(gamestate, my_group, enemy_distance_map, min_distance, max_distance)
     # debug_logger.debug('moves = %s' % str(moves))
     best_move = []
@@ -68,6 +71,7 @@ def get_best_move(gamestate, my_group, enemy_group, enemy_distance_map, min_dist
             best_move = move
             best_score = score
 
+    perf_logger.debug('get_best_move.finish = %s' % str(gamestate.time_elapsed()))   
     return best_move, best_score
     
 def execute_group_move(gamestate, my_group, group_move):
@@ -75,16 +79,18 @@ def execute_group_move(gamestate, my_group, group_move):
         gamestate.issue_order_by_location(my_group[i], group_move[i])
             
 def evaluate_move(gamestate, my_group, enemy_group):
+    perf_logger.debug('evaluate_move.start = %s' % str(gamestate.time_elapsed()))   
     # debug_logger.debug('my_move = %s' % str(my_group))
     gamestate.counter += 1
     # print('evaluate_move counter = %d' % gamestate.counter)
     
     my_distance_map = get_distance_map(gamestate, my_group, ZONE_BORDER[1])    
         
-    enemy_kill_moves = generate_move(gamestate, enemy_group, my_distance_map, 1, ZONE_BORDER[1])
+    enemy_kill_moves = generate_move(gamestate, enemy_group, my_distance_map, 1, ZONE_BORDER[0])
+    enemy_danger_moves = generate_move(gamestate, enemy_group, my_distance_map, ZONE_BORDER[0], ZONE_BORDER[1])
     
     worst_score = 10
-    for enemy_move in enemy_kill_moves:
+    for enemy_move in enemy_kill_moves + enemy_danger_moves:
         enemy_distance_map = get_distance_map(gamestate, enemy_move, ZONE_BORDER[1]) 
         my_kill_ants = [ant for ant in my_group if enemy_distance_map[ant] >= 1 
                         and enemy_distance_map[ant] < ZONE_BORDER[0]]
@@ -96,15 +102,18 @@ def evaluate_move(gamestate, my_group, enemy_group):
         if score < worst_score:
             worst_score = score
             
+    perf_logger.debug('evaluate_move.finish = %s' % str(gamestate.time_elapsed()))  
     return worst_score
 
 def generate_move(gamestate, ant_group, opponent_distance_map, min_distance, max_distance):
+    perf_logger.debug('generate_move.start = %s' % str(gamestate.time_elapsed()))  
     moves = generate_move_recurse(gamestate, ant_group, opponent_distance_map, min_distance, max_distance)
     
     # if there is no valid move combination, most likely due to conflict, resort to this heuristic method
     if len(moves) == 0:
         moves = generate_move_heuristic(gamestate, ant_group, opponent_distance_map, min_distance, max_distance)
         
+    perf_logger.debug('generate_move.finish = %s' % str(gamestate.time_elapsed()))  
     return moves
     
 def generate_move_heuristic(gamestate, ant_group, opponent_distance_map, min_distance, max_distance):
@@ -166,6 +175,7 @@ def generate_move_recurse(gamestate, ant_group, opponent_distance_map, min_dista
     return full_result
     
 def get_distance_map(gamestate, ant_group, cutoff):
+    perf_logger.debug('get_distance_map.start = %s' % str(gamestate.time_elapsed()))  
     'from start_loc, find enemy ant within distance_limit'
     # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
     # create a queue Q
@@ -189,6 +199,7 @@ def get_distance_map(gamestate, ant_group, cutoff):
                 # enqueue w onto Q
                 list_q.append(w) 
                         
+    perf_logger.debug('get_distance_map.finish = %s' % str(gamestate.time_elapsed())) 
     return map
                 
 def get_combat_groups(gamestate):

@@ -20,7 +20,7 @@ AIM = {'n': (-1, 0),
        'e': (0, 1),
        's': (1, 0),
        'w': (0, -1)}
-       
+
 def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim=2] gs_map, float cutoff):
     'diffuse inf_map'
     assert inf_map.dtype == DTYPEF and gs_map.dtype == DTYPEI
@@ -32,10 +32,10 @@ def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim
     cdef int d_col = 0
     cdef DTYPEF_t diffuse_value
     cdef int neighbour_count = 0
-    cdef np.ndarray[DTYPEF_t, ndim=2] buffer = np.zeros([rows, cols], dtype=DTYPEF) 
+    cdef np.ndarray[DTYPEF_t, ndim=2] buffer = np.zeros([rows, cols], dtype=DTYPEF)
     #cdef char* direction
     #buffer = np.zeros([rows,cols])
-    
+
     # find surrounding non-water nodes and diffuse to them
     for row in range(rows):
         for col in range(cols):
@@ -53,7 +53,7 @@ def diffuse_once(np.ndarray[DTYPEF_t, ndim=2] inf_map, np.ndarray[DTYPEI_t, ndim
                     # negative influences do not accumulate near water
                     buffer[row, col] += inf_map[row,col] - diffuse_value * 4
                 else:
-                    # positive influence accumulate near water, so ants are naturally repelled from edges 
+                    # positive influence accumulate near water, so ants are naturally repelled from edges
                     buffer[row, col] += inf_map[row,col] - diffuse_value * neighbour_count
 
     return buffer
@@ -63,7 +63,7 @@ cdef inline destination(int row, int col, char* direction, int rows, int cols):
     cdef int d_row = 0
     cdef int d_col = 0
     d_row, d_col = AIM[direction]
-    
+
     return (row + d_row) % rows, (col + d_col) % cols
 
 def merge_linear_map(np.ndarray[DTYPEI_t, ndim=3] np_temp_maps, np.ndarray[DTYPEF_t, ndim=2] inf_map):
@@ -80,7 +80,7 @@ def merge_linear_map(np.ndarray[DTYPEI_t, ndim=3] np_temp_maps, np.ndarray[DTYPE
             loc_values = []
             min_val = magical_number
             for i in range(np_temp_maps.shape[0]):
-                if np_temp_maps[i,row,col] < 0:                    
+                if np_temp_maps[i,row,col] < 0:
                     loc_values.append(np_temp_maps[i,row,col])
                     if loc_values[-1] < min_val:
                         min_val = loc_values[-1]
@@ -89,37 +89,7 @@ def merge_linear_map(np.ndarray[DTYPEI_t, ndim=3] np_temp_maps, np.ndarray[DTYPE
 
 def euclidean_distance2(int row1, int col1, int row2, int col2, rows, cols):
     'calculate the euclidean distance between to locations'
-    
+
     d_col = min(abs(col1 - col2), cols - abs(col1 - col2))
     d_row = min(abs(row1 - row2), rows - abs(row1 - row2))
     return d_row**2 + d_col**2
-
-def get_distance_map(int rows, int cols, ant_group, cutoff):
-    'from start_loc, find enemy ant within distance_limit'
-    # http://en.wikipedia.org/wiki/Breadth-first_search#Pseudocode
-    # create a queue Q
-    list_q = deque(ant_group)
-    # mark source, which has its value being its root, used for calculating distance
-    marked_dict = {ant:ant for ant in ant_group}
-    
-    cdef np.ndarray[DTYPEI_t, ndim=2] map = np.zeros((rows, cols), dtype=DTYPEI) - 1
-    while len(list_q) > 0:
-        # dequeue an item from Q into v
-        v = list_q.popleft()
-        # for each edge e incident on v in Graph:
-        for w in gamestate.neighbour_table[v]:
-            row1, col1 = w
-            for 
-            row2, col2 = loc
-            distance = min([euclidean_distance2(w, loc) for loc in ant_group])
-            # set map
-            map[w] = distance
-            # if w is not marked
-            if w not in marked_dict and w not in gamestate.water_list and distance < cutoff:                
-                # mark w
-                marked_dict[w] = marked_dict[v]
-                # enqueue w onto Q
-                list_q.append(w) 
-                        
-    return map
-    

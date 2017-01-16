@@ -6,3 +6,4 @@ game_logs
 cython*.c
 src/build
 archive/*/build
+*.so

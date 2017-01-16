@@ -1,6 +1,22 @@
 Bill's Bot for Google AI Challenge 2011 - Ants
 ====================
 
+Pre-requisites:
+--------------------
+- Python 2.x
+- Cython
+- Numpy
+
+
+Run the game:
+--------------------
+- go to /src and run `python setup.py build_ext --inplace`
+- go to /tools-win and run `./play_one_game.sh`
+- watch game being executed
+- once game is completed, a browser window will open with visualized replay
+
+You can modify `play_one_game.sh` script to change the map or other parameters. By default, the game is played by Bill's Bot and a few other instances of a simplistic hunter bot.
+
 Architecture:
 --------------------
 Core of the architecture relies on Influence Mapping, which is constructed by planner and used by individual ants to make decision on what to do.
